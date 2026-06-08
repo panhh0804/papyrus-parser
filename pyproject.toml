@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "papyrus"
+version = "0.1.0"
+description = "Universal document parser for Claude Code, Codex, Kimi - parse PDFs, presentations, and documents to markdown or JSON"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "Pan Haohao", email = "pan@example.com"}
+]
+license = {text = "MIT"}
+keywords = ["pdf", "parser", "markdown", "document", "cli"]
+
+dependencies = [
+    "pymupdf4llm>=0.1.0",
+    "markitdown[docx,pptx,xlsx]>=0.0.5",
+    "click>=8.0",
+    "python-magic-bin>=0.4.14;platform_system=='Windows'",
+    "python-magic>=0.4.24;platform_system!='Windows'",
+]
+
+[project.optional-dependencies]
+heavy = [
+    "marker-pdf>=0.3.0",
+]
+dev = [
+    "pytest>=7.0",
+    "black>=22.0",
+    "flake8>=4.0",
+]
+
+[project.scripts]
+papyrus = "papyrus.cli:main"
+
+[tool.setuptools]
+packages = ["papyrus", "papyrus.parsers"]

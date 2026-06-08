@@ -1,0 +1,11 @@
+# Core dependencies
+click>=8.0
+pymupdf4llm>=0.1.0
+markitdown>=0.0.5
+
+# Optional: for heavy path (marker)
+# marker-pdf>=0.3.0
+
+# System-specific
+python-magic>=0.4.24;platform_system!='Windows'
+python-magic-bin>=0.4.14;platform_system=='Windows'
