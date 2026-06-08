@@ -275,14 +275,141 @@ papyrus homework.pdf | head -50
 
 ## Configuration
 
-### Global System Instructions
+### Setting Up AI Tools to Use Papyrus (Optional)
 
-Papyrus is automatically injected into:
+To enable Claude Code, Codex, and Kimi to automatically use Papyrus for document parsing, 
+create the following configuration files:
+
 - **Claude Code** — `~/.claude/CLAUDE.md`
 - **Codex** — `~/.codex/skills/papyrus/SKILL.md`
 - **Kimi Code** — `~/.kimi-code/skills/papyrus/SKILL.md`
 
-Your agents will automatically know to use Papyrus when reading documents.
+Once configured, your agents will automatically use Papyrus when reading documents.
+
+#### Claude Code Setup
+
+1. Create the directory if it doesn't exist:
+```bash
+mkdir -p ~/.claude
+```
+
+2. Create or edit `~/.claude/CLAUDE.md`:
+```bash
+cat > ~/.claude/CLAUDE.md << 'EOF'
+# Document Parsing with Papyrus
+
+When you need to **read or parse any document** (PDF, PPTX, DOCX, Word, HTML, Markdown, text), you **must** use the `papyrus` CLI tool. Do NOT install pymupdf, PyPDF2, pdfplumber, python-pptx, or other parsing libraries on-the-fly.
+
+## Supported Formats
+
+- **PDF** — both text-based and scanned/image-based
+- **PPTX** — PowerPoint presentations (2007+)
+- **DOCX** — Microsoft Word documents
+- **XLSX** — Excel spreadsheets (converts to Markdown tables)
+- **HTML** — web pages and HTML files
+- **Markdown** — `.md`, `.markdown` files
+- **Plain text** — `.txt` files
+
+## How to Use
+
+```bash
+# Basic: parse to markdown (auto-detects best strategy)
+papyrus <file_path>
+
+# Output as JSON (with metadata)
+papyrus <file_path> --format json
+
+# Save to file
+papyrus <file_path> -o result.md
+
+# Force OCR for scanned documents
+papyrus <file_path> --use-heavy
+
+# Force quick parsing (no OCR)
+papyrus <file_path> --use-fast
+
+# Verbose output (shows routing decision)
+papyrus <file_path> -v
+```
+
+## When to Use --use-heavy
+
+The heavy path (OCR with marker) is slower but better for:
+- Scanned PDFs (when output is empty or garbled)
+- Complex tables and multi-column layouts
+- Mathematical formulas
+- Documents with handwriting or annotations
+
+Default (fast path) is fine for:
+- Modern PDFs with selectable text
+- Simple documents
+- Quick previews
+EOF
+```
+
+#### Codex Setup
+
+1. Create the directory if it doesn't exist:
+```bash
+mkdir -p ~/.codex/skills/papyrus
+```
+
+2. Create `~/.codex/skills/papyrus/SKILL.md`:
+```bash
+cat > ~/.codex/skills/papyrus/SKILL.md << 'EOF'
+---
+name: papyrus
+description: Use this skill to read or parse documents (PDF, PPTX, DOCX, XLSX, Word, HTML). Avoids slow on-the-fly library installation by using a pre-installed universal document parser.
+keywords: ["pdf", "document", "parse", "pptx", "presentation", "parser"]
+---
+
+# Document Parsing with Papyrus
+
+When you need to read, extract, or analyze a document, use **`papyrus`** — a fast, pre-installed universal document parser.
+
+## Supported Formats
+
+- **PDF** (text-based and scanned/OCR)
+- **PPTX** (PowerPoint presentations)
+- **DOCX** (Word documents)
+- **XLSX** (Excel spreadsheets → Markdown tables)
+- **HTML** (web pages)
+- **Markdown** (`.md` files)
+- **Plain text** (`.txt`)
+
+## Basic Usage
+
+```bash
+papyrus <file_path>                     # To markdown (default)
+papyrus <file_path> --format json       # JSON output
+papyrus <file_path> -o output.md        # Save to file
+papyrus <file_path> --use-heavy         # OCR for scanned documents
+papyrus <file_path> --use-fast          # Quick parsing
+papyrus <file_path> -v                  # Verbose mode
+```
+
+## Smart Routing
+
+- **Fast Path** (default): Quick parsing with pymupdf4llm/markitdown (~100ms)
+- **Heavy Path** (--use-heavy): OCR with marker (5-30s, for scanned documents)
+
+Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
+EOF
+```
+
+#### Kimi Code Setup
+
+1. Create the directory if it doesn't exist:
+```bash
+mkdir -p ~/.kimi-code/skills/papyrus
+```
+
+2. Create `~/.kimi-code/skills/papyrus/SKILL.md` (same content as Codex):
+```bash
+cp ~/.codex/skills/papyrus/SKILL.md ~/.kimi-code/skills/papyrus/SKILL.md
+```
+
+Or manually create with the same content as the Codex setup above.
 
 ## Performance Characteristics
 
@@ -657,14 +784,142 @@ papyrus homework.pdf | head -50
 
 ## 配置
 
-### 全局系统指令
+### 配置 AI 工具使用 Papyrus（可选）
 
-Papyrus 已自动注入到：
+为了让 Claude Code、Codex、Kimi 自动使用 Papyrus 解析文档，
+需要创建以下配置文件：
+
 - **Claude Code** — `~/.claude/CLAUDE.md`
 - **Codex** — `~/.codex/skills/papyrus/SKILL.md`
 - **Kimi Code** — `~/.kimi-code/skills/papyrus/SKILL.md`
 
-你的 Agent 会自动知道读文件时用 Papyrus。
+配置完成后，你的 Agent 会自动使用 Papyrus 读文件。
+
+#### Claude Code 配置
+
+1. 创建目录（如果不存在）：
+```bash
+mkdir -p ~/.claude
+```
+
+2. 创建或编辑 `~/.claude/CLAUDE.md`：
+```bash
+cat > ~/.claude/CLAUDE.md << 'EOF'
+# 文档解析工具
+
+读取或分析 PDF、DOCX、Word、HTML、Markdown 等文档文件时，
+必须用 `papyrus` CLI 工具，不要临时 pip install 任何解析库。
+
+## 支持的格式
+
+- **PDF** — 文字版和扫描版（含 OCR）
+- **PPTX** — PowerPoint 演示文稿
+- **DOCX** — Word 文档
+- **XLSX** — Excel 电子表格（转为 Markdown 表格）
+- **HTML** — 网页和 HTML 文件
+- **Markdown** — `.md`、`.markdown` 文件
+- **纯文本** — `.txt` 文件
+
+## 用法
+
+```bash
+# 默认（输出 markdown，自动选择快/重路径）
+papyrus <file_path>
+
+# 输出 JSON（含元数据）
+papyrus <file_path> --format json
+
+# 保存到文件
+papyrus <file_path> -o result.md
+
+# 强制重路径（OCR，适合扫描件/复杂表格）
+papyrus <file_path> --use-heavy
+
+# 强制快路径（不需要 OCR）
+papyrus <file_path> --use-fast
+
+# 详细输出（显示路由决策）
+papyrus <file_path> -v
+```
+
+## 何时用 --use-heavy
+
+重路径（OCR）比较慢，但更适合：
+- 扫描件 PDF（输出为空或乱码时）
+- 复杂多列表格
+- 含数学公式
+- 含手写或注释
+
+默认（快路径）适合：
+- 现代 PDF（文字可选中）
+- 简单文档
+- 快速预览
+EOF
+```
+
+#### Codex 配置
+
+1. 创建目录（如果不存在）：
+```bash
+mkdir -p ~/.codex/skills/papyrus
+```
+
+2. 创建 `~/.codex/skills/papyrus/SKILL.md`：
+```bash
+cat > ~/.codex/skills/papyrus/SKILL.md << 'EOF'
+---
+name: papyrus
+description: 用这个 skill 来读取或解析文档（PDF、PPTX、DOCX、XLSX、Word、HTML）。预装的通用文档解析器避免了慢速的临时库安装。
+keywords: ["pdf", "document", "parse", "pptx", "presentation", "parser"]
+---
+
+# 文档解析工具 Papyrus
+
+当你需要读取、提取或分析文档时，使用 **`papyrus`** — 一个快速、预装的通用文档解析器。
+
+## 支持的格式
+
+- **PDF**（文字版和扫描版 + OCR）
+- **PPTX**（PowerPoint 演示文稿）
+- **DOCX**（Word 文档）
+- **XLSX**（Excel 电子表格 → Markdown 表格）
+- **HTML**（网页）
+- **Markdown**（`.md` 文件）
+- **纯文本**（`.txt`）
+
+## 基本用法
+
+```bash
+papyrus <file_path>                     # 输出 markdown（默认）
+papyrus <file_path> --format json       # JSON 输出
+papyrus <file_path> -o output.md        # 保存到文件
+papyrus <file_path> --use-heavy         # 扫描件用 OCR
+papyrus <file_path> --use-fast          # 快速模式
+papyrus <file_path> -v                  # 详细模式
+```
+
+## 智能路由
+
+- **快路径**（默认）：用 pymupdf4llm/markitdown 快速解析（~100ms）
+- **重路径**（--use-heavy）：用 marker + OCR（5-30s，适合扫描件）
+
+输出为空或乱码时用 `--use-heavy`（说明是扫描件）。
+EOF
+```
+
+#### Kimi Code 配置
+
+1. 创建目录（如果不存在）：
+```bash
+mkdir -p ~/.kimi-code/skills/papyrus
+```
+
+2. 创建 `~/.kimi-code/skills/papyrus/SKILL.md`（内容与 Codex 相同）：
+```bash
+cp ~/.codex/skills/papyrus/SKILL.md ~/.kimi-code/skills/papyrus/SKILL.md
+```
+
+或手动创建，内容与上面 Codex 配置相同。
 
 ## 性能指标
 
