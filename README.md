@@ -299,13 +299,39 @@ papyrus document.pdf -v
 
 ## Keeping Configs in Sync
 
-After upgrading Papyrus (e.g. `git pull` or re-cloning), **re-run setup** to update your AI-tool configs with the latest templates:
+Papyrus writes config files (SKILL.md, AGENTS.md, MCP configs) to your home directory during setup. These files **do not auto-update** when you upgrade Papyrus.
+
+### Step 1: Upgrade Papyrus
+
+```bash
+cd ~/papyrus
+git pull
+pip install -e .
+```
+
+### Step 2: Re-Run Setup
 
 ```bash
 papyrus setup all
 ```
 
-Papyrus automatically detects outdated config files and updates them. No need to delete anything manually.
+If any config file is outdated, Papyrus will warn you before updating:
+
+```text
+⚠️  Some config files are outdated and will be updated:
+   - Claude Code SKILL.md
+   - Codex SKILL.md
+   - Kimi SKILL.md
+   - AGENTS.md
+```
+
+### Step 3: Restart Your AI Tools
+
+After setup completes, restart Claude Code / Codex / Kimi so they pick up the new configs.
+
+### How It Works
+
+Each generated file contains a hidden hash comment (e.g. `<!-- papyrus-template-hash: a1b2c3d4 -->`). Papyrus compares this hash against the current template during setup. If it mismatches, the file is overwritten automatically — no need to delete anything manually.
 
 ## Supported Formats
 
@@ -467,7 +493,7 @@ mkdir -p ~/.claude
 ```
 
 2. Create or edit `~/.claude/CLAUDE.md`:
-```bash
+````bash
 cat > ~/.claude/CLAUDE.md << 'EOF'
 # Document Parsing with Papyrus
 
@@ -518,7 +544,7 @@ Default (fast path) is fine for:
 - Simple documents
 - Quick previews
 EOF
-```
+````
 
 #### Codex Setup
 
@@ -528,7 +554,7 @@ mkdir -p ~/.codex/skills/papyrus
 ```
 
 2. Create `~/.codex/skills/papyrus/SKILL.md`:
-```bash
+````bash
 cat > ~/.codex/skills/papyrus/SKILL.md << 'EOF'
 ---
 name: papyrus
@@ -568,7 +594,7 @@ papyrus <file_path> -v                  # Verbose mode
 
 Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
 EOF
-```
+````
 
 #### Kimi Code Setup
 
@@ -976,13 +1002,39 @@ papyrus document.pdf -v
 
 ## 保持配置同步
 
-升级 Papyrus 后（例如 `git pull` 或重新克隆），**重新运行 setup** 以将 AI 工具的配置更新为最新模板：
+Papyrus 在执行 setup 时会将配置文件（SKILL.md、AGENTS.md、MCP 配置等）写入你的 home 目录。**这些文件不会随 Papyrus 本身的升级而自动更新。**
+
+### 步骤 1：升级 Papyrus
+
+```bash
+cd ~/papyrus
+git pull
+pip install -e .
+```
+
+### 步骤 2：重新运行 Setup
 
 ```bash
 papyrus setup all
 ```
 
-Papyrus 会自动检测过时的配置文件并更新它们，无需手动删除任何内容。
+如果有配置文件已过时，Papyrus 会在更新前提示你：
+
+```text
+⚠️  Some config files are outdated and will be updated:
+   - Claude Code SKILL.md
+   - Codex SKILL.md
+   - Kimi SKILL.md
+   - AGENTS.md
+```
+
+### 步骤 3：重启 AI 工具
+
+Setup 完成后，重启 Claude Code / Codex / Kimi，使它们加载新的配置。
+
+### 工作原理
+
+每个生成的文件末尾都带有一个隐藏的 hash 注释（例如 `<!-- papyrus-template-hash: a1b2c3d4 -->`）。Papyrus 在运行 setup 时会将这个 hash 与当前模板的 hash 进行比对。如果不匹配，文件会被自动覆盖 —— 无需手动删除任何内容。
 
 ## 支持的格式
 
@@ -1144,7 +1196,7 @@ mkdir -p ~/.claude
 ```
 
 2. 创建或编辑 `~/.claude/CLAUDE.md`：
-```bash
+````bash
 cat > ~/.claude/CLAUDE.md << 'EOF'
 # 文档解析工具
 
@@ -1196,7 +1248,7 @@ papyrus <file_path> -v
 - 简单文档
 - 快速预览
 EOF
-```
+````
 
 #### Codex 配置
 
@@ -1206,7 +1258,7 @@ mkdir -p ~/.codex/skills/papyrus
 ```
 
 2. 创建 `~/.codex/skills/papyrus/SKILL.md`：
-```bash
+````bash
 cat > ~/.codex/skills/papyrus/SKILL.md << 'EOF'
 ---
 name: papyrus
@@ -1246,7 +1298,7 @@ papyrus <file_path> -v                  # 详细模式
 
 输出为空或乱码时用 `--use-heavy`（说明是扫描件）。
 EOF
-```
+````
 
 #### Kimi Code 配置
 
