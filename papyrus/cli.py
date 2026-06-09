@@ -12,6 +12,7 @@ from .detector import detect_file_type, is_scanned_document
 from .router import route_file, get_path_reason
 from .parsers.fast_path import parse_with_fast_path
 from .parsers.heavy_path import parse_with_marker
+from .utils import echo, secho
 
 
 def parse_document(
@@ -53,8 +54,8 @@ def parse_document(
     file_type = detect_file_type(file_path)
 
     if verbose:
-        click.echo(f"📄 File: {file_path}", err=True)
-        click.echo(f"📋 Type: {file_type}", err=True)
+        echo(f"📄 File: {file_path}", err=True)
+        echo(f"📋 Type: {file_type}", err=True)
 
     # Validate parameters
     if force_heavy and force_fast:
@@ -67,7 +68,7 @@ def parse_document(
 
     if verbose:
         reason = get_path_reason(route, file_path)
-        click.echo(f"🔄 {reason}", err=True)
+        echo(f"🔄 {reason}", err=True)
 
     # Parse
     if route == "heavy":
@@ -75,13 +76,24 @@ def parse_document(
             result = parse_with_marker(file_path, output_format=output_format)
         except ImportError as e:
             # Fallback to fast path if marker is not installed
-            if verbose:
-                click.secho(
+            if force_heavy:
+                # Always warn when user explicitly requested --use-heavy
+                secho(
                     "⚠️  Marker (OCR) unavailable, falling back to fast parser",
                     fg="yellow",
                     err=True,
                 )
-                click.echo(
+                echo(
+                    f"   Reason: {str(e)[:80]}",
+                    err=True,
+                )
+            elif verbose:
+                secho(
+                    "⚠️  Marker (OCR) unavailable, falling back to fast parser",
+                    fg="yellow",
+                    err=True,
+                )
+                echo(
                     f"   Reason: {str(e)[:80]}",
                     err=True,
                 )
@@ -161,7 +173,7 @@ def main(
         if output:
             Path(output).write_text(output_text, encoding="utf-8")
             if verbose:
-                click.echo(f"✅ Saved to: {output}", err=True)
+                echo(f"✅ Saved to: {output}", err=True)
         else:
             click.echo(output_text)
 
@@ -251,7 +263,7 @@ def setup_tools(tool: Optional[str], mcp: bool):
             )
 
     click.echo("")
-    click.secho("🔧 Setting up Papyrus...", fg="cyan", bold=True)
+    secho("🔧 Setting up Papyrus...", fg="cyan", bold=True)
     click.echo("")
 
     success_count = 0
@@ -282,9 +294,9 @@ def setup_tools(tool: Optional[str], mcp: bool):
     click.secho("=" * 60, fg="cyan")
 
     if success_count == total_count:
-        click.secho("✅ Setup completed successfully!", fg="green", bold=True)
+        secho("✅ Setup completed successfully!", fg="green", bold=True)
     else:
-        click.secho(
+        secho(
             f"⚠️  Setup partially completed ({success_count}/{total_count})",
             fg="yellow",
             bold=True,
@@ -303,7 +315,7 @@ def setup_tools(tool: Optional[str], mcp: bool):
         click.echo("3. Ask your tool to read a document - it should automatically")
         click.echo("   use the parse_document tool from Papyrus MCP server")
         click.echo("")
-        click.secho("📚 See MCP_SETUP.md for detailed MCP configuration", fg="cyan")
+        secho("📚 See MCP_SETUP.md for detailed MCP configuration", fg="cyan")
     else:
         click.echo("1. Restart your AI tool (Claude Code, Codex, etc.)")
         click.echo("")
@@ -312,7 +324,7 @@ def setup_tools(tool: Optional[str], mcp: bool):
         click.echo("")
 
     click.echo("")
-    click.secho("💡 Tip: Run 'papyrus setup --help' to see all options", fg="cyan")
+    secho("💡 Tip: Run 'papyrus setup --help' to see all options", fg="cyan")
     click.echo("")
 
 

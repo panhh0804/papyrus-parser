@@ -17,22 +17,22 @@ function Write-Header {
 
 function Write-Success {
     param([string]$Text)
-    Write-Host "✓ $Text" -ForegroundColor Green
+    Write-Host "[OK] $Text" -ForegroundColor Green
 }
 
 function Write-Error-Custom {
     param([string]$Text)
-    Write-Host "✗ $Text" -ForegroundColor Red
+    Write-Host "[FAIL] $Text" -ForegroundColor Red
 }
 
 function Write-Warning-Custom {
     param([string]$Text)
-    Write-Host "⚠ $Text" -ForegroundColor Yellow
+    Write-Host "[WARN] $Text" -ForegroundColor Yellow
 }
 
 function Write-Info {
     param([string]$Text)
-    Write-Host "ℹ $Text" -ForegroundColor Cyan
+    Write-Host "[INFO] $Text" -ForegroundColor Cyan
 }
 
 # Check if running as administrator
@@ -249,10 +249,10 @@ function Add-ToPATH {
 # Main setup flow
 function Main {
     Write-Host ""
-    Write-Host "╔══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║           Papyrus Windows Setup Script                   ║" -ForegroundColor Cyan
-    Write-Host "║  Universal Document Parser for AI Agents                 ║" -ForegroundColor Cyan
-    Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host "           Papyrus Windows Setup Script                   " -ForegroundColor Cyan
+    Write-Host "  Universal Document Parser for AI Agents                 " -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host ""
 
     # Step 1: Check/Install Tesseract

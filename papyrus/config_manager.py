@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Optional, List
 
+from .utils import print_compat
+
 # Template for Codex/Kimi SKILL.md - shared between tools
 CODEX_KIMI_SKILL_TEMPLATE = """---
 name: papyrus
@@ -70,7 +72,7 @@ class ConfigManager:
             else:
                 return self._setup_claude_code_skill()
         except Exception as e:
-            print(f"❌ Error setting up Claude Code: {e}")
+            print_compat(f"❌ Error setting up Claude Code: {e}")
             return False
 
     def _setup_claude_code_skill(self) -> bool:
@@ -129,10 +131,10 @@ Default (fast path) is fine for:
 
         try:
             claude_md.write_text(content, encoding="utf-8")
-            print(f"✓ Created {claude_md}")
+            print_compat(f"✓ Created {claude_md}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write {claude_md}: {e}")
+            print_compat(f"❌ Failed to write {claude_md}: {e}")
             return False
 
     def _setup_claude_code_mcp(self) -> bool:
@@ -160,10 +162,10 @@ Default (fast path) is fine for:
 
         try:
             claude_json.write_text(json.dumps(config, indent=2), encoding="utf-8")
-            print(f"✓ Updated {claude_json}")
+            print_compat(f"✓ Updated {claude_json}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write {claude_json}: {e}")
+            print_compat(f"❌ Failed to write {claude_json}: {e}")
             return False
 
     def setup_codex(self, mcp_mode: bool = False) -> bool:
@@ -181,7 +183,7 @@ Default (fast path) is fine for:
             else:
                 return self._setup_codex_skill()
         except Exception as e:
-            print(f"❌ Error setting up Codex: {e}")
+            print_compat(f"❌ Error setting up Codex: {e}")
             return False
 
     def _setup_codex_skill(self) -> bool:
@@ -290,10 +292,10 @@ If you see empty output or garbled text:
 
         try:
             skill_md.write_text(content, encoding="utf-8")
-            print(f"✓ Created {skill_md}")
+            print_compat(f"✓ Created {skill_md}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write {skill_md}: {e}")
+            print_compat(f"❌ Failed to write {skill_md}: {e}")
             return False
 
     def _setup_codex_mcp(self) -> bool:
@@ -307,7 +309,7 @@ If you see empty output or garbled text:
 
         # Check if papyrus MCP is already configured
         if "papyrus" in config_content and "[mcp_servers]" in config_content:
-            print(f"✓ Papyrus MCP already configured in {codex_config}")
+            print_compat(f"✓ Papyrus MCP already configured in {codex_config}")
             return True
 
         # Add MCP server configuration
@@ -326,10 +328,10 @@ cwd = "{papyrus_path}"
 
         try:
             codex_config.write_text(config_content, encoding="utf-8")
-            print(f"✓ Updated {codex_config}")
+            print_compat(f"✓ Updated {codex_config}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write {codex_config}: {e}")
+            print_compat(f"❌ Failed to write {codex_config}: {e}")
             return False
 
     def setup_kimi(self, mcp_mode: bool = False) -> bool:
@@ -347,7 +349,7 @@ cwd = "{papyrus_path}"
             else:
                 return self._setup_kimi_skill()
         except Exception as e:
-            print(f"❌ Error setting up Kimi Code: {e}")
+            print_compat(f"❌ Error setting up Kimi Code: {e}")
             return False
 
     def _setup_kimi_skill(self) -> bool:
@@ -365,10 +367,10 @@ cwd = "{papyrus_path}"
         try:
             kimi_skill = kimi_skills_dir / "SKILL.md"
             kimi_skill.write_text(codex_skill.read_text())
-            print(f"✓ Created {kimi_skill}")
+            print_compat(f"✓ Created {kimi_skill}")
             return True
         except Exception as e:
-            print(f"❌ Failed to set up Kimi SKILL.md: {e}")
+            print_compat(f"❌ Failed to set up Kimi SKILL.md: {e}")
             return False
 
     def _setup_kimi_skill_direct(self) -> bool:
@@ -424,10 +426,10 @@ Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
 
         try:
             filepath.write_text(content, encoding="utf-8")
-            print(f"✓ Created {filepath}")
+            print_compat(f"✓ Created {filepath}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write {filepath}: {e}")
+            print_compat(f"❌ Failed to write {filepath}: {e}")
             return False
 
     def _setup_kimi_mcp(self) -> bool:
@@ -441,7 +443,7 @@ Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
 
         # Check if papyrus MCP is already configured
         if "papyrus" in config_content and "[mcp_servers]" in config_content:
-            print(f"✓ Papyrus MCP already configured in {kimi_config}")
+            print_compat(f"✓ Papyrus MCP already configured in {kimi_config}")
             return True
 
         # Add MCP server configuration
@@ -460,10 +462,10 @@ cwd = "{papyrus_path}"
 
         try:
             kimi_config.write_text(config_content, encoding="utf-8")
-            print(f"✓ Updated {kimi_config}")
+            print_compat(f"✓ Updated {kimi_config}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write {kimi_config}: {e}")
+            print_compat(f"❌ Failed to write {kimi_config}: {e}")
             return False
 
     def setup_agents_md(self) -> bool:
@@ -595,8 +597,8 @@ For detailed documentation, see:
 """
 
             agents_md.write_text(content, encoding="utf-8")
-            print(f"✓ Created {agents_md}")
+            print_compat(f"✓ Created {agents_md}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write {agents_md}: {e}")
+            print_compat(f"❌ Failed to write {agents_md}: {e}")
             return False

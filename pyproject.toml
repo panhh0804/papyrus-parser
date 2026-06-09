@@ -17,6 +17,7 @@ keywords = ["pdf", "parser", "markdown", "document", "cli"]
 dependencies = [
     "pymupdf4llm>=0.1.0",
     "markitdown[docx,pptx,xlsx]>=0.0.5",
+    "python-docx>=0.8.11",
     "click>=8.0",
     "python-magic-bin>=0.4.14;platform_system=='Windows'",
     "python-magic>=0.4.24;platform_system!='Windows'",
@@ -33,7 +34,7 @@ dev = [
 ]
 
 [project.scripts]
-papyrus = "papyrus.cli:main"
+papyrus = "papyrus.cli:cli"
 
 [tool.setuptools]
 packages = ["papyrus", "papyrus.parsers"]
