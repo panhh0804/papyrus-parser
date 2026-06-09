@@ -1,11 +1,42 @@
 """Configuration manager for setting up Papyrus with AI tools."""
 
-import os
+import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Optional, List
 
 from .utils import print_compat
+
+_HASH_COMMENT_PATTERN = re.compile(r"<!--\s*papyrus-template-hash:\s*([a-f0-9]+)\s*-->")
+
+
+def _compute_hash(content: str) -> str:
+    """Compute short SHA256 hash of template content."""
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()[:8]
+
+
+def _inject_hash(content: str, h: str) -> str:
+    """Inject or update hash comment at end of markdown content."""
+    content = _HASH_COMMENT_PATTERN.sub("", content)
+    return content.rstrip() + f"\n\n<!-- papyrus-template-hash: {h} -->"
+
+
+def _extract_hash(content: str) -> Optional[str]:
+    """Extract hash from existing file content."""
+    m = _HASH_COMMENT_PATTERN.search(content)
+    return m.group(1) if m else None
+
+
+def _is_outdated(filepath: Path, current_content: str) -> bool:
+    """Check if an existing config file is outdated compared to current template."""
+    if not filepath.exists():
+        return False
+    existing = filepath.read_text(encoding="utf-8")
+    existing_hash = _extract_hash(existing)
+    if existing_hash is None:
+        return True  # Old file without hash = definitely outdated
+    return existing_hash != _compute_hash(current_content)
 
 # Template for Codex/Kimi SKILL.md - shared between tools
 CODEX_KIMI_SKILL_TEMPLATE = """---
@@ -53,6 +84,30 @@ class ConfigManager:
 
     def __init__(self):
         self.home = Path.home()
+
+    def check_all_configs(self) -> List[str]:
+        """Check which markdown config files are missing the template hash (outdated).
+
+        Returns:
+            List of human-readable descriptions of outdated configs.
+        """
+        outdated = []
+
+        # Files that receive template content with hash injection
+        checks = [
+            ("Claude Code SKILL.md", self.home / ".claude" / "CLAUDE.md"),
+            ("Codex SKILL.md", self.home / ".codex" / "skills" / "papyrus" / "SKILL.md"),
+            ("Kimi SKILL.md", self.home / ".kimi-code" / "skills" / "papyrus" / "SKILL.md"),
+            ("AGENTS.md", self.home / "AGENTS.md"),
+        ]
+
+        for name, filepath in checks:
+            if filepath.exists():
+                content = filepath.read_text(encoding="utf-8")
+                if _extract_hash(content) is None:
+                    outdated.append(name)
+
+        return outdated
 
     def setup_claude_code(self, mcp_mode: bool = False) -> bool:
         """Set up Claude Code to use Papyrus.
@@ -130,6 +185,7 @@ Default (fast path) is fine for:
 """
 
         try:
+            content = _inject_hash(content, _compute_hash(content))
             claude_md.write_text(content, encoding="utf-8")
             print_compat(f"✓ Created {claude_md}")
             return True
@@ -291,6 +347,7 @@ If you see empty output or garbled text:
 """
 
         try:
+            content = _inject_hash(content, _compute_hash(content))
             skill_md.write_text(content, encoding="utf-8")
             print_compat(f"✓ Created {skill_md}")
             return True
@@ -425,6 +482,7 @@ Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
 """
 
         try:
+            content = _inject_hash(content, _compute_hash(content))
             filepath.write_text(content, encoding="utf-8")
             print_compat(f"✓ Created {filepath}")
             return True
@@ -596,6 +654,7 @@ For detailed documentation, see:
 - `$HOME/papyrus/MCP_SETUP.md` — MCP server integration guide
 """
 
+            content = _inject_hash(content, _compute_hash(content))
             agents_md.write_text(content, encoding="utf-8")
             print_compat(f"✓ Created {agents_md}")
             return True

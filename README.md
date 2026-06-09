@@ -40,7 +40,7 @@ Total time: 100-500ms for most documents
 - ⚡ **Smart Routing** — Automatically chooses fast parsing (milliseconds) or OCR (for scanned documents)
 - 📄 **Multi-Format Support** — PDF, PPTX, DOCX, Word, HTML, Markdown, plain text
 - 🔬 **Optional OCR** — Heavy path with marker for scanned documents and complex tables
-- 🌍 **Cross-Platform** — Works with Claude Code, Codex, Kimi, and any tool that runs shell commands
+- 🌍 **Cross-Platform** — Works on macOS, Linux, and Windows (with ASCII-safe terminal output)
 - 🧠 **AI-Agent Friendly** — Designed specifically for AI assistant workflows
 
 ## Quick Start
@@ -277,6 +277,16 @@ papyrus setup all
 ```bash
 papyrus setup claude-code --mcp
 ```
+
+### Keeping Configs in Sync
+
+After upgrading Papyrus (e.g. `git pull` or re-cloning), **re-run setup** to update your AI-tool configs with the latest templates:
+
+```bash
+papyrus setup all
+```
+
+Papyrus automatically detects outdated config files and updates them. No need to delete anything manually.
 
 ### Usage
 
@@ -626,6 +636,7 @@ done
 | Very slow | Heavy path running unnecessarily | Use `papyrus <file> --use-fast` |
 | "Command not found" | Not in PATH | Source `~/.zshrc` or use full path |
 | ImportError | Missing optional dependencies | `pip install 'papyrus[heavy]'` |
+| Windows terminal crashes | Emoji / Unicode output on legacy cmd | Use Windows Terminal or PowerShell 7+ (Papyrus auto-falls back to ASCII on older shells) |
 
 ## Installation Options
 

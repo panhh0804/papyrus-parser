@@ -34,7 +34,7 @@ dev = [
 ]
 
 [project.scripts]
-papyrus = "papyrus.cli:cli"
+papyrus = "papyrus.cli:run_cli"
 
 [tool.setuptools]
 packages = ["papyrus", "papyrus.parsers"]

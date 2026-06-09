@@ -262,6 +262,19 @@ def setup_tools(tool: Optional[str], mcp: bool):
                 default=True,
             )
 
+    # Check if any existing configs are outdated
+    outdated = manager.check_all_configs()
+    if outdated:
+        click.echo("")
+        secho(
+            "⚠️  Some config files are outdated and will be updated:",
+            fg="yellow",
+            bold=True,
+        )
+        for name in outdated:
+            click.echo(f"   - {name}")
+        click.echo("")
+
     click.echo("")
     secho("🔧 Setting up Papyrus...", fg="cyan", bold=True)
     click.echo("")
@@ -332,5 +345,23 @@ def setup_tools(tool: Optional[str], mcp: bool):
 cli.add_command(main, name="parse")
 
 
-if __name__ == "__main__":
+def run_cli():
+    """Entry point with default command support.
+
+    If the first positional argument is not a known sub-command,
+    automatically prepend 'parse' so `papyrus <file>` works.
+    """
+    import sys
+
+    if len(sys.argv) > 1:
+        first = sys.argv[1]
+        # Known sub-commands + common flags that should not trigger default
+        known = {"parse", "setup", "mcp", "--help", "-h", "--version"}
+        if not first.startswith("-") and first not in known:
+            sys.argv.insert(1, "parse")
+
     cli()
+
+
+if __name__ == "__main__":
+    run_cli()
