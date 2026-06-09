@@ -633,12 +633,6 @@ source venv/bin/activate
 pip install -e .
 ```
 
-## Documentation
-
-- **[QUICKSTART.md](QUICKSTART.md)** — 5-minute setup guide
-- **[USAGE_WITH_AGENTS.md](USAGE_WITH_AGENTS.md)** — Integration guide for specific tools
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** — Technical architecture
-
 ## License
 
 MIT
@@ -1289,12 +1283,6 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -e .
 ```
-
-## 文档
-
-- **[QUICKSTART.md](QUICKSTART.md)** — 5 分钟快速开始
-- **[USAGE_WITH_AGENTS.md](USAGE_WITH_AGENTS.md)** — 各工具集成指南
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** — 技术架构
 
 ## 许可
 
