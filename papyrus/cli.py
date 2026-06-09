@@ -189,6 +189,114 @@ def run_mcp():
         sys.exit(1)
 
 
+@cli.command("setup")
+@click.argument(
+    "tool",
+    type=click.Choice(
+        ["all", "claude-code", "codex", "kimi", "agents-md"],
+        case_sensitive=False,
+    ),
+    required=False,
+)
+@click.option(
+    "--mcp",
+    is_flag=True,
+    help="Use MCP (Model Context Protocol) server instead of SKILL.md",
+)
+def setup_tools(tool: Optional[str], mcp: bool):
+    """Set up Papyrus configuration for AI tools.
+
+    \b
+    Examples:
+        papyrus setup                  # Interactive menu
+        papyrus setup all              # Set up all tools
+        papyrus setup claude-code      # Set up only Claude Code
+        papyrus setup all --mcp        # Use MCP for all tools
+    """
+    from .config_manager import ConfigManager
+
+    manager = ConfigManager()
+
+    if not tool:
+        # Interactive menu
+        tool = click.prompt(
+            "Which tool to set up?",
+            type=click.Choice(["all", "claude-code", "codex", "kimi", "agents-md"]),
+            default="all",
+        )
+
+        if not mcp:
+            mcp = click.confirm(
+                "Use MCP (Model Context Protocol) server? (recommended)",
+                default=True,
+            )
+
+    click.echo("")
+    click.secho("🔧 Setting up Papyrus...", fg="cyan", bold=True)
+    click.echo("")
+
+    success_count = 0
+    total_count = 0
+
+    tools_to_setup = {
+        "claude-code": lambda: manager.setup_claude_code(mcp_mode=mcp),
+        "codex": lambda: manager.setup_codex(mcp_mode=mcp),
+        "kimi": lambda: manager.setup_kimi(mcp_mode=mcp),
+        "agents-md": lambda: manager.setup_agents_md(),
+    }
+
+    if tool == "all":
+        for tool_name, setup_func in tools_to_setup.items():
+            total_count += 1
+            if setup_func():
+                success_count += 1
+    elif tool == "agents-md":
+        total_count += 1
+        if manager.setup_agents_md():
+            success_count += 1
+    else:
+        total_count += 1
+        if tools_to_setup[tool]():
+            success_count += 1
+
+    click.echo("")
+    click.secho("=" * 60, fg="cyan")
+
+    if success_count == total_count:
+        click.secho("✅ Setup completed successfully!", fg="green", bold=True)
+    else:
+        click.secho(
+            f"⚠️  Setup partially completed ({success_count}/{total_count})",
+            fg="yellow",
+            bold=True,
+        )
+
+    click.echo("")
+    click.echo("Next steps:")
+    click.echo("")
+
+    if mcp:
+        click.echo("1. Start Papyrus MCP server:")
+        click.echo("   python -m papyrus.mcp_server")
+        click.echo("")
+        click.echo("2. Restart your AI tool (Claude Code, Codex, etc.)")
+        click.echo("")
+        click.echo("3. Ask your tool to read a document - it should automatically")
+        click.echo("   use the parse_document tool from Papyrus MCP server")
+        click.echo("")
+        click.secho("📚 See MCP_SETUP.md for detailed MCP configuration", fg="cyan")
+    else:
+        click.echo("1. Restart your AI tool (Claude Code, Codex, etc.)")
+        click.echo("")
+        click.echo("2. Ask your tool to read a document - it should automatically")
+        click.echo("   know to use Papyrus")
+        click.echo("")
+
+    click.echo("")
+    click.secho("💡 Tip: Run 'papyrus setup --help' to see all options", fg="cyan")
+    click.echo("")
+
+
 # Add the parse command to the group
 cli.add_command(main, name="parse")
 

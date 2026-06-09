@@ -213,6 +213,55 @@ papyrus --help
 | (Windows) Tesseract not found | Update `tesseract_config.py` with correct path |
 | ModuleNotFoundError: No module named 'magic' | Linux: `sudo apt-get install libmagic1` |
 
+## One-Command Setup for AI Tools
+
+After installation, configure Papyrus for your AI tools with one command:
+
+### Interactive Setup (Recommended)
+
+```bash
+papyrus setup
+```
+
+This opens a menu where you can choose:
+- Which tool to configure (Claude Code, Codex, Kimi, all, or just AGENTS.md)
+- Whether to use MCP server (recommended) or SKILL.md approach
+
+### Non-Interactive Setup
+
+```bash
+# Configure all tools with MCP
+papyrus setup all --mcp
+
+# Configure just Claude Code
+papyrus setup claude-code
+
+# Configure using SKILL.md (default)
+papyrus setup all
+
+# Create AGENTS.md for Codex (optional)
+papyrus setup agents-md
+```
+
+### Examples
+
+**Easiest way (recommended):**
+```bash
+papyrus setup all --mcp
+python -m papyrus.mcp_server
+```
+
+**Setup with SKILL.md:**
+```bash
+papyrus setup all
+# Restart your tools, they automatically use Papyrus
+```
+
+**Just set up Claude Code:**
+```bash
+papyrus setup claude-code --mcp
+```
+
 ### Usage
 
 ```bash
@@ -332,34 +381,57 @@ papyrus homework.pdf | head -50
 
 ## Configuration
 
-### Quick Setup: Two Recommended Approaches
+### Quick Start: One-Command Setup ⭐ (Recommended)
 
-#### Approach 1: MCP Server (Recommended) ⭐
-
-Use **MCP (Model Context Protocol)** for the most standardized, maintainable setup:
+After installation, set up Papyrus for all your AI tools in seconds:
 
 ```bash
-# Just run Papyrus as an MCP server
-python -m papyrus.mcp_server
+papyrus setup all --mcp
 ```
 
-Then configure your tool to connect to this MCP server. See [MCP_SETUP.md](MCP_SETUP.md) for detailed instructions.
+This automatically:
+- ✅ Configures Claude Code, Codex, and Kimi
+- ✅ Sets up MCP server (recommended) or SKILL.md
+- ✅ Creates all necessary config files
+
+Done! Your tools now know to use Papyrus.
+
+### Manual Approaches
+
+#### Approach 1: MCP Server (Most Standardized)
+
+For fine-grained control or if you prefer manual setup:
+
+1. Configure tools to use MCP:
+   ```bash
+   papyrus setup all --mcp
+   ```
+
+2. Run Papyrus MCP server:
+   ```bash
+   python -m papyrus.mcp_server
+   ```
 
 **Benefits:**
 - ✅ Single unified interface for all tools
-- ✅ Automatic tool discovery
 - ✅ Standard protocol (MCP)
-- ✅ No redundant configurations
+- ✅ Automatic tool discovery
+- ✅ Best for long-term maintenance
 
-#### Approach 2: Tool-Specific Skills (Alternative)
+See [MCP_SETUP.md](MCP_SETUP.md) for detailed MCP instructions.
 
-Create separate configuration files for each tool:
+#### Approach 2: Tool-Specific Skills (Simplest)
 
+```bash
+papyrus setup all
+```
+
+This creates:
 - **Claude Code** — `~/.claude/CLAUDE.md`
 - **Codex** — `~/.codex/skills/papyrus/SKILL.md`
 - **Kimi Code** — `~/.kimi-code/skills/papyrus/SKILL.md`
 
-See the detailed setup instructions below.
+Your tools automatically know to use Papyrus—no MCP server needed.
 
 #### Claude Code Setup
 
@@ -797,6 +869,55 @@ papyrus --help
 | (Windows) Tesseract 未找到 | 用正确路径更新 `tesseract_config.py` |
 | ModuleNotFoundError: No module named 'magic' | Linux：`sudo apt-get install libmagic1` |
 
+## 一条命令配置 AI 工具
+
+安装完成后，用一条命令为 AI 工具配置 Papyrus：
+
+### 交互式配置（推荐）
+
+```bash
+papyrus setup
+```
+
+会弹出菜单让你选择：
+- 要配置哪个工具（Claude Code、Codex、Kimi、全部或仅 AGENTS.md）
+- 是否使用 MCP 服务器（推荐）或 SKILL.md 方式
+
+### 非交互式配置
+
+```bash
+# 用 MCP 配置所有工具
+papyrus setup all --mcp
+
+# 仅配置 Claude Code
+papyrus setup claude-code
+
+# 用 SKILL.md 配置（默认）
+papyrus setup all
+
+# 为 Codex 创建 AGENTS.md（可选）
+papyrus setup agents-md
+```
+
+### 示例
+
+**最简单的方式（推荐）：**
+```bash
+papyrus setup all --mcp
+python -m papyrus.mcp_server
+```
+
+**用 SKILL.md 方式：**
+```bash
+papyrus setup all
+# 重启工具，它们会自动使用 Papyrus
+```
+
+**仅配置 Claude Code：**
+```bash
+papyrus setup claude-code --mcp
+```
+
 ### 使用
 
 ```bash
@@ -916,16 +1037,57 @@ papyrus homework.pdf | head -50
 
 ## 配置
 
-### 配置 AI 工具使用 Papyrus（可选）
+### 快速开始：一条命令配置 ⭐（推荐）
 
-为了让 Claude Code、Codex、Kimi 自动使用 Papyrus 解析文档，
-需要创建以下配置文件：
+安装完成后，几秒钟配置好所有 AI 工具：
 
+```bash
+papyrus setup all --mcp
+```
+
+自动完成：
+- ✅ 配置 Claude Code、Codex、Kimi
+- ✅ 设置 MCP 服务器（推荐）或 SKILL.md
+- ✅ 创建所有必要的配置文件
+
+完毕！你的工具现在知道如何使用 Papyrus 了。
+
+### 手动配置方式
+
+#### 方式 1：MCP 服务器（最标准）
+
+如果你想细粒度控制或偏好手动配置：
+
+1. 配置工具使用 MCP：
+   ```bash
+   papyrus setup all --mcp
+   ```
+
+2. 运行 Papyrus MCP 服务器：
+   ```bash
+   python -m papyrus.mcp_server
+   ```
+
+**优势：**
+- ✅ 统一的接口
+- ✅ 标准协议（MCP）
+- ✅ 自动发现
+- ✅ 最好的长期可维护性
+
+详见 [MCP_SETUP.md](MCP_SETUP.md)。
+
+#### 方式 2：工具特定的 Skill（最简单）
+
+```bash
+papyrus setup all
+```
+
+创建：
 - **Claude Code** — `~/.claude/CLAUDE.md`
 - **Codex** — `~/.codex/skills/papyrus/SKILL.md`
 - **Kimi Code** — `~/.kimi-code/skills/papyrus/SKILL.md`
 
-配置完成后，你的 Agent 会自动使用 Papyrus 读文件。
+工具自动知道使用 Papyrus，无需 MCP 服务器。
 
 #### Claude Code 配置
 
