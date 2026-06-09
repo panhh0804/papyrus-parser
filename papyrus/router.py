@@ -48,9 +48,22 @@ def route_file(
 
 def get_path_reason(route: str, file_path: str) -> str:
     """Get human-readable reason for routing decision."""
-    reasons = {
-        "fast": "Light PDF - using fast parser (pymupdf4llm)",
-        "heavy": "Complex/scanned PDF - using heavy parser (marker with OCR)",
-        "unsupported": "Unsupported file type",
+    file_type = detect_file_type(file_path)
+
+    if route == "unsupported":
+        return "Unsupported file type"
+
+    if route == "heavy":
+        return "Complex/scanned PDF - using heavy parser (marker with OCR)"
+
+    fast_reasons = {
+        "pdf": "Light PDF - using fast parser (pymupdf4llm)",
+        "docx": "Word document - using fast parser (markitdown)",
+        "doc": "Word document - using fast parser (markitdown)",
+        "pptx": "PowerPoint - using fast parser (markitdown)",
+        "html": "HTML page - using fast parser (markitdown)",
+        "excel": "Excel spreadsheet - using fast parser (markitdown)",
+        "markdown": "Markdown file - using fast parser",
+        "txt": "Text file - using fast parser",
     }
-    return reasons.get(route, "Unknown routing")
+    return fast_reasons.get(file_type, f"{file_type.upper()} file - using fast parser (markitdown)")

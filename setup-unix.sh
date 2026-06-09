@@ -97,6 +97,18 @@ install_tesseract_linux() {
     fi
 }
 
+# Check python3-venv availability
+ check_python3_venv() {
+     print_info "Checking python3-venv support..."
+     if python3 -m venv --help >/dev/null 2>&1; then
+         return 0
+     fi
+     print_error "python3-venv is not available"
+     print_info "Ubuntu/Debian: sudo apt-get install -y python3-venv"
+     print_info "Other distros: install the python3-venv package for your distribution"
+     return 1
+ }
+
 # Install Papyrus
 install_papyrus() {
     print_header "Installing Papyrus"
@@ -105,6 +117,9 @@ install_papyrus() {
     local venv_path="$script_dir/venv"
 
     if [ ! -d "$venv_path" ]; then
+        if ! check_python3_venv; then
+            return 1
+        fi
         print_info "Creating Python virtual environment..."
         python3 -m venv venv
         print_success "Virtual environment created"

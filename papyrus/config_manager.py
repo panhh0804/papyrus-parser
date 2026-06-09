@@ -357,7 +357,9 @@ If you see empty output or garbled text:
 
     def _setup_codex_mcp(self) -> bool:
         """Set up Codex with MCP approach."""
-        codex_config = self.home / ".codex" / "config.toml"
+        codex_dir = self.home / ".codex"
+        codex_dir.mkdir(parents=True, exist_ok=True)
+        codex_config = codex_dir / "config.toml"
 
         # Read existing config
         config_content = ""
@@ -492,7 +494,9 @@ Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
 
     def _setup_kimi_mcp(self) -> bool:
         """Set up Kimi Code with MCP approach."""
-        kimi_config = self.home / ".kimi-code" / "config.toml"
+        kimi_dir = self.home / ".kimi-code"
+        kimi_dir.mkdir(parents=True, exist_ok=True)
+        kimi_config = kimi_dir / "config.toml"
 
         # Read existing config
         config_content = ""
