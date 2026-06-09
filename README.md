@@ -150,7 +150,7 @@ papyrus --help
 
 ```powershell
 # Open PowerShell and run:
-cd $env:USERPROFILE
+cd "$env:USERPROFILE"
 git clone https://github.com/yourusername/papyrus.git papyrus
 cd papyrus
 
@@ -800,7 +800,7 @@ papyrus --help
 
 ```powershell
 # 打开 PowerShell 并运行：
-cd $env:USERPROFILE
+cd "$env:USERPROFILE"
 git clone https://github.com/yourusername/papyrus.git papyrus
 cd papyrus
 
