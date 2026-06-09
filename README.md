@@ -332,16 +332,34 @@ papyrus homework.pdf | head -50
 
 ## Configuration
 
-### Setting Up AI Tools to Use Papyrus (Optional)
+### Quick Setup: Two Recommended Approaches
 
-To enable Claude Code, Codex, and Kimi to automatically use Papyrus for document parsing, 
-create the following configuration files:
+#### Approach 1: MCP Server (Recommended) ⭐
+
+Use **MCP (Model Context Protocol)** for the most standardized, maintainable setup:
+
+```bash
+# Just run Papyrus as an MCP server
+python -m papyrus.mcp_server
+```
+
+Then configure your tool to connect to this MCP server. See [MCP_SETUP.md](MCP_SETUP.md) for detailed instructions.
+
+**Benefits:**
+- ✅ Single unified interface for all tools
+- ✅ Automatic tool discovery
+- ✅ Standard protocol (MCP)
+- ✅ No redundant configurations
+
+#### Approach 2: Tool-Specific Skills (Alternative)
+
+Create separate configuration files for each tool:
 
 - **Claude Code** — `~/.claude/CLAUDE.md`
 - **Codex** — `~/.codex/skills/papyrus/SKILL.md`
 - **Kimi Code** — `~/.kimi-code/skills/papyrus/SKILL.md`
 
-Once configured, your agents will automatically use Papyrus when reading documents.
+See the detailed setup instructions below.
 
 #### Claude Code Setup
 
