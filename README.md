@@ -54,7 +54,7 @@ Choose the guide for your operating system:
 **One-Command Installation:**
 
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 bash setup-unix.sh
 ```
@@ -77,7 +77,7 @@ brew install tesseract
 
 2. **Clone and install Papyrus**:
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 python3 -m venv venv
 source venv/bin/activate
@@ -101,7 +101,7 @@ papyrus --help
 **One-Command Installation:**
 
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 bash setup-unix.sh
 ```
@@ -125,7 +125,7 @@ sudo apt-get install -y tesseract-ocr libmagic1 python3-venv
 
 2. **Clone and install Papyrus**:
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 python3 -m venv venv
 source venv/bin/activate
@@ -151,7 +151,7 @@ papyrus --help
 ```powershell
 # Open PowerShell and run:
 cd "$env:USERPROFILE"
-git clone https://github.com/yourusername/papyrus.git papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git papyrus
 cd papyrus
 
 # Run the setup script (handles everything automatically)
@@ -178,7 +178,7 @@ If you prefer to configure manually:
 
 2. **Clone and install Papyrus**:
 ```cmd
-git clone https://github.com/yourusername/papyrus.git %USERPROFILE%\papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git %USERPROFILE%\papyrus
 cd %USERPROFILE%\papyrus
 python -m venv venv
 venv\Scripts\activate
@@ -704,7 +704,7 @@ Papyrus 是为 Claude Code、Codex、Kimi 等 AI 助手设计的通用文档解�
 **一条命令完成安装：**
 
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 bash setup-unix.sh
 ```
@@ -727,7 +727,7 @@ brew install tesseract
 
 2. **克隆并安装 Papyrus**：
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 python3 -m venv venv
 source venv/bin/activate
@@ -751,7 +751,7 @@ papyrus --help
 **一条命令完成安装：**
 
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 bash setup-unix.sh
 ```
@@ -775,7 +775,7 @@ sudo apt-get install -y tesseract-ocr libmagic1 python3-venv
 
 2. **克隆并安装 Papyrus**：
 ```bash
-git clone https://github.com/yourusername/papyrus.git ~/papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git ~/papyrus
 cd ~/papyrus
 python3 -m venv venv
 source venv/bin/activate
@@ -801,7 +801,7 @@ papyrus --help
 ```powershell
 # 打开 PowerShell 并运行：
 cd "$env:USERPROFILE"
-git clone https://github.com/yourusername/papyrus.git papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git papyrus
 cd papyrus
 
 # 运行安装脚本（自动处理所有步骤）
@@ -828,7 +828,7 @@ powershell -ExecutionPolicy Bypass -File setup-windows.ps1
 
 2. **克隆并安装 Papyrus**：
 ```cmd
-git clone https://github.com/yourusername/papyrus.git %USERPROFILE%\papyrus
+git clone https://github.com/panhh0804/papyrus-parser.git %USERPROFILE%\papyrus
 cd %USERPROFILE%\papyrus
 python -m venv venv
 venv\Scripts\activate
