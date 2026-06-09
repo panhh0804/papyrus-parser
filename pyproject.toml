@@ -16,6 +16,7 @@ keywords = ["pdf", "parser", "markdown", "document", "cli"]
 
 dependencies = [
     "pymupdf4llm>=0.1.0",
+    "pymupdf>=1.23.0",
     "markitdown[docx,pptx,xlsx]>=0.0.5",
     "python-docx>=0.8.11",
     "click>=8.0",

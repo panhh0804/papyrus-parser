@@ -11,6 +11,12 @@ except ImportError:
     HAS_PYMUPDF4LLM = False
 
 try:
+    import fitz  # PyMuPDF
+    HAS_FITZ = True
+except ImportError:
+    HAS_FITZ = False
+
+try:
     import markitdown
     HAS_MARKITDOWN = True
 except ImportError:
@@ -24,6 +30,23 @@ def parse_pdf_with_pymupdf4llm(file_path: str) -> str:
 
     md_text = pymupdf4llm.to_markdown(file_path)
     return md_text
+
+
+def parse_pdf_with_fitz_raw(file_path: str) -> str:
+    """Parse PDF using raw PyMuPDF fitz API (stable fallback for large files)."""
+    if not HAS_FITZ:
+        raise ImportError("PyMuPDF not installed. Run: pip install pymupdf")
+
+    doc = fitz.open(file_path)
+    try:
+        pages = []
+        for page_num, page in enumerate(doc, start=1):
+            text = page.get_text().strip()
+            if text:
+                pages.append(f"## Page {page_num}\n\n{text}")
+        return "\n\n".join(pages) if pages else ""
+    finally:
+        doc.close()
 
 
 def parse_with_markitdown(file_path: str) -> str:
@@ -57,13 +80,22 @@ def parse_with_fast_path(
     if not path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
+    parser_used = "markitdown"
+
     # Try pymupdf4llm for PDFs first (if not forced to markitdown)
     if path.suffix.lower() == ".pdf" and not use_markitdown:
         try:
             content = parse_pdf_with_pymupdf4llm(file_path)
-        except Exception as e:
-            # Fallback to markitdown
-            content = parse_with_markitdown(file_path)
+            parser_used = "pymupdf4llm"
+        except Exception:
+            # Fallback 1: raw PyMuPDF (more stable for large / tricky PDFs)
+            try:
+                content = parse_pdf_with_fitz_raw(file_path)
+                parser_used = "pymupdf-raw"
+            except Exception:
+                # Fallback 2: markitdown
+                content = parse_with_markitdown(file_path)
+                parser_used = "markitdown"
     else:
         content = parse_with_markitdown(file_path)
 
@@ -74,7 +106,7 @@ def parse_with_fast_path(
             "metadata": {
                 "file": path.name,
                 "size_bytes": path.stat().st_size,
-                "parser": "pymupdf4llm" if path.suffix.lower() == ".pdf" and not use_markitdown else "markitdown",
+                "parser": parser_used,
             },
         }
 

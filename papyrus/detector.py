@@ -63,8 +63,10 @@ def is_scanned_pdf(file_path: str) -> bool:
     """
     Detect if PDF is scanned (image-based, no selectable text).
 
-    Returns True if text extraction ratio is very low (< 10% text content).
-    Threshold: average < 50 characters per page indicates scanned PDF.
+    Returns True if text extraction ratio is very low.
+    Threshold: average < 20 characters per page indicates scanned PDF.
+    For CJK documents, characters carry more information per glyph,
+    so this threshold is intentionally low.
     """
     if not HAS_PYMUPDF:
         return False
@@ -74,15 +76,17 @@ def is_scanned_pdf(file_path: str) -> bool:
         doc = fitz.open(file_path)
         total_chars = 0
         total_pages = len(doc)
+        if total_pages == 0:
+            return False
 
-        for page in doc:
-            text = page.get_text()
+        # Sample first few pages for speed on large documents
+        sample_pages = min(total_pages, 10)
+        for i in range(sample_pages):
+            text = doc[i].get_text()
             total_chars += len(text.strip())
 
-        # If < 50 chars/page on average, likely scanned
-        avg_chars_per_page = total_chars / max(1, total_pages)
-        is_scanned = avg_chars_per_page < 50
-        return is_scanned
+        avg_chars_per_page = total_chars / sample_pages
+        return avg_chars_per_page < 20
     except Exception:
         return False
     finally:
@@ -92,12 +96,14 @@ def is_scanned_pdf(file_path: str) -> bool:
 
 def is_complex_pdf(file_path: str) -> bool:
     """
-    Detect if PDF has complex layout (tables, figures, mixed content).
+    Detect if PDF has complex layout that likely benefits from OCR/layout analysis.
+
+    Uses conservative thresholds to avoid routing ordinary lecture notes
+    (long but text-heavy) to the slow heavy path.
 
     Returns True if:
-    - PDF has > 50 pages (typically complex)
-    - Any page has > 2 images (indicates figures/tables)
-    - Any page has > 20 text blocks (indicates complex layout)
+    - PDF has > 200 pages AND many image-heavy pages (visual textbooks / atlases)
+    - Multiple sample pages are image-dominant with very little text
     """
     if not HAS_PYMUPDF:
         return False
@@ -105,18 +111,32 @@ def is_complex_pdf(file_path: str) -> bool:
     doc = None
     try:
         doc = fitz.open(file_path)
-        # Long PDFs are often complex
-        if len(doc) > 50:
+        total_pages = len(doc)
+        if total_pages == 0:
+            return False
+
+        sample_pages = min(total_pages, 10)
+        total_chars = 0
+        image_heavy_pages = 0
+
+        for i in range(sample_pages):
+            page = doc[i]
+            text = page.get_text().strip()
+            total_chars += len(text)
+
+            # Count images (exclude tiny stamps / watermarks)
+            image_count = len(page.get_images())
+            if image_count > 5:
+                image_heavy_pages += 1
+
+        avg_chars_per_page = total_chars / sample_pages
+
+        # Only route to heavy if it is genuinely image-dominant
+        if total_pages > 200 and image_heavy_pages >= 5:
             return True
 
-        for page in doc:
-            # Check for images, paths (drawings), multiple text blocks
-            image_count = len(page.get_images())
-            blocks = page.get_text("blocks")
-
-            # Thresholds: 2+ images or 20+ text blocks = complex
-            if image_count > 2 or len(blocks) > 20:
-                return True
+        if image_heavy_pages >= 3 and avg_chars_per_page < 50:
+            return True
 
         return False
     except Exception:
