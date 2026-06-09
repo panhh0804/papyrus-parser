@@ -98,8 +98,8 @@ install_tesseract_linux() {
 }
 
 # Check python3-venv availability
- check_python3_venv() {
-     print_info "Checking python3-venv support..."
+check_python3_venv() {
+    print_info "Checking python3-venv support..."
      if python3 -m venv --help >/dev/null 2>&1; then
          return 0
      fi
