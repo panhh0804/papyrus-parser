@@ -1,5 +1,6 @@
 """Command-line interface for Papyrus."""
 
+import os
 import sys
 import json
 from pathlib import Path
@@ -34,7 +35,20 @@ def parse_document(
 
     Returns:
         Dict with "content" and "format" keys
+
+    Raises:
+        FileNotFoundError: If file doesn't exist or isn't readable
+        ValueError: For invalid parameters or unsupported file types
     """
+    # Validate file exists and is readable
+    file = Path(file_path)
+    if not file.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+    if not file.is_file():
+        raise ValueError(f"Not a file: {file_path}")
+    if not os.access(file_path, os.R_OK):
+        raise PermissionError(f"Cannot read file (permission denied): {file_path}")
+
     # Detect file type
     file_type = detect_file_type(file_path)
 
@@ -42,7 +56,7 @@ def parse_document(
         click.echo(f"📄 File: {file_path}", err=True)
         click.echo(f"📋 Type: {file_type}", err=True)
 
-    # Route to appropriate parser
+    # Validate parameters
     if force_heavy and force_fast:
         raise ValueError("Cannot use both --use-heavy and --use-fast")
 
@@ -59,11 +73,16 @@ def parse_document(
     if route == "heavy":
         try:
             result = parse_with_marker(file_path, output_format=output_format)
-        except ImportError:
+        except ImportError as e:
             # Fallback to fast path if marker is not installed
             if verbose:
+                click.secho(
+                    "⚠️  Marker (OCR) unavailable, falling back to fast parser",
+                    fg="yellow",
+                    err=True,
+                )
                 click.echo(
-                    f"⚠️  Heavy path unavailable, falling back to fast path",
+                    f"   Reason: {str(e)[:80]}",
                     err=True,
                 )
             result = parse_with_fast_path(file_path, output_format=output_format)
@@ -300,12 +319,6 @@ def setup_tools(tool: Optional[str], mcp: bool):
 # Add the parse command to the group
 cli.add_command(main, name="parse")
 
-# Keep the old interface for backwards compatibility
+
 if __name__ == "__main__":
-    # If called directly without subcommand, default to parse
-    if len(sys.argv) > 1 and sys.argv[1] not in ["mcp", "--help", "-h"]:
-        # This is a parse command, use main directly
-        main()
-    else:
-        # Use the group with subcommands
-        cli()
+    cli()

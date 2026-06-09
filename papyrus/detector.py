@@ -64,10 +64,12 @@ def is_scanned_pdf(file_path: str) -> bool:
     Detect if PDF is scanned (image-based, no selectable text).
 
     Returns True if text extraction ratio is very low (< 10% text content).
+    Threshold: average < 50 characters per page indicates scanned PDF.
     """
     if not HAS_PYMUPDF:
         return False
 
+    doc = None
     try:
         doc = fitz.open(file_path)
         total_chars = 0
@@ -77,28 +79,34 @@ def is_scanned_pdf(file_path: str) -> bool:
             text = page.get_text()
             total_chars += len(text.strip())
 
-        doc.close()
-
-        # If < 10% of pages have meaningful text, likely scanned
+        # If < 50 chars/page on average, likely scanned
         avg_chars_per_page = total_chars / max(1, total_pages)
-        is_scanned = avg_chars_per_page < 50  # arbitrary threshold
+        is_scanned = avg_chars_per_page < 50
         return is_scanned
     except Exception:
         return False
+    finally:
+        if doc is not None:
+            doc.close()
 
 
 def is_complex_pdf(file_path: str) -> bool:
     """
     Detect if PDF has complex layout (tables, figures, mixed content).
 
-    Returns True if the PDF appears to have complex formatting.
+    Returns True if:
+    - PDF has > 50 pages (typically complex)
+    - Any page has > 2 images (indicates figures/tables)
+    - Any page has > 20 text blocks (indicates complex layout)
     """
     if not HAS_PYMUPDF:
         return False
 
+    doc = None
     try:
         doc = fitz.open(file_path)
-        if len(doc) > 50:  # Long PDFs are often complex
+        # Long PDFs are often complex
+        if len(doc) > 50:
             return True
 
         for page in doc:
@@ -106,14 +114,16 @@ def is_complex_pdf(file_path: str) -> bool:
             image_count = len(page.get_images())
             blocks = page.get_text("blocks")
 
+            # Thresholds: 2+ images or 20+ text blocks = complex
             if image_count > 2 or len(blocks) > 20:
-                doc.close()
                 return True
 
-        doc.close()
         return False
     except Exception:
         return False
+    finally:
+        if doc is not None:
+            doc.close()
 
 
 def is_scanned_document(file_path: str) -> bool:

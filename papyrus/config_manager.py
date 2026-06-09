@@ -5,6 +5,46 @@ import json
 from pathlib import Path
 from typing import Optional, List
 
+# Template for Codex/Kimi SKILL.md - shared between tools
+CODEX_KIMI_SKILL_TEMPLATE = """---
+name: papyrus
+description: Use this skill to read or parse documents (PDF, PPTX, DOCX, XLSX, Word, HTML). Avoids slow on-the-fly library installation by using a pre-installed universal document parser.
+keywords: ["pdf", "document", "parse", "pptx", "presentation", "parser"]
+---
+
+# Document Parsing with Papyrus
+
+When you need to read, extract, or analyze a document, use **`papyrus`** — a fast, pre-installed universal document parser.
+
+## Supported Formats
+
+- **PDF** (text-based and scanned/OCR)
+- **PPTX** (PowerPoint presentations)
+- **DOCX** (Word documents)
+- **XLSX** (Excel spreadsheets → Markdown tables)
+- **HTML** (web pages)
+- **Markdown** (`.md` files)
+- **Plain text** (`.txt`)
+
+## Basic Usage
+
+```bash
+papyrus <file_path>                     # To markdown (default)
+papyrus <file_path> --format json       # JSON output
+papyrus <file_path> -o output.md        # Save to file
+papyrus <file_path> --use-heavy         # OCR for scanned documents
+papyrus <file_path> --use-fast          # Quick parsing
+papyrus <file_path> -v                  # Verbose mode
+```
+
+## Smart Routing
+
+- **Fast Path** (default): Quick parsing with pymupdf4llm/markitdown (~100ms)
+- **Heavy Path** (--use-heavy): OCR with marker (5-30s, for scanned documents)
+
+Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
+"""
+
 
 class ConfigManager:
     """Manages Papyrus configuration for different AI tools."""

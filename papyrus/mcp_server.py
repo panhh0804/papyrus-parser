@@ -13,10 +13,11 @@ class MCPServer:
 
     def handle_request(self, request: dict) -> dict:
         """Handle MCP JSON-RPC 2.0 request."""
+        request_id = request.get("id")
+
         try:
             method = request.get("method")
             params = request.get("params", {})
-            request_id = request.get("id")
 
             if method == "initialize":
                 result = self.initialize(params)
@@ -25,29 +26,36 @@ class MCPServer:
             elif method == "tools/call":
                 result = self.call_tool(params)
             else:
-                return {
+                response = {
                     "jsonrpc": "2.0",
-                    "id": request_id,
                     "error": {
                         "code": -32601,
                         "message": f"Method not found: {method}",
                     },
                 }
+                if request_id is not None:
+                    response["id"] = request_id
+                return response
 
-            return {
+            response = {
                 "jsonrpc": "2.0",
-                "id": request_id,
                 "result": result,
             }
+            if request_id is not None:
+                response["id"] = request_id
+            return response
+
         except Exception as e:
-            return {
+            response = {
                 "jsonrpc": "2.0",
-                "id": request.get("id"),
                 "error": {
                     "code": -32603,
                     "message": str(e),
                 },
             }
+            if request_id is not None:
+                response["id"] = request_id
+            return response
 
     def initialize(self, params: dict) -> dict:
         """Handle initialization."""
