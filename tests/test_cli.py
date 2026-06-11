@@ -50,6 +50,18 @@ class CliTests(unittest.TestCase):
         self.assertIn("info", result.output)
         self.assertIn("clear", result.output)
 
+    def test_config_subcommand_help(self):
+        result = CliRunner().invoke(cli, ["config", "--help"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("show", result.output)
+
+    def test_repair_shebang_command_is_registered(self):
+        result = CliRunner().invoke(cli, ["repair-shebang", "--help"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("--venv", result.output)
+
     def test_batch_help_exposes_executor(self):
         result = CliRunner().invoke(cli, ["batch", "--help"])
 

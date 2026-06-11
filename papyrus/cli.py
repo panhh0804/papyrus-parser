@@ -15,8 +15,16 @@ import click
 from . import __version__
 from .cache import cache_info, cache_key, clear_cache, load_cached_result, store_cached_result
 from .detector import detect_file_type, is_scanned_document
+from .errors import (
+    MissingDependencyError,
+    UnsupportedFormatError,
+    ensure_non_empty_output,
+    friendly_error_message,
+    validate_document_file,
+)
 from .images import append_image_section, default_image_dir, extract_images
 from .metadata import merge_metadata
+from .progress import show_document_progress
 from .router import route_file, get_path_reason
 from .parsers.fast_path import parse_with_fast_path
 from .parsers.heavy_path import parse_with_marker
@@ -44,10 +52,11 @@ def _do_parse(
 
     route = route_file(file_path, force_heavy=force_heavy, force_fast=force_fast)
     if route == "unsupported":
-        raise ValueError(f"Unsupported file type: {file_type}")
+        raise UnsupportedFormatError(f"Unsupported file type: {file_type}")
     if verbose:
         reason = get_path_reason(route, file_path)
         echo(f"🔄 {reason}", err=True)
+        show_document_progress(file_path, file_type=file_type)
     if route == "heavy":
         try:
             result = parse_with_marker(file_path, output_format=output_format)
@@ -92,7 +101,10 @@ def _do_parse(
             result = parse_with_fast_path(file_path, output_format=output_format)
     else:
         result = parse_with_fast_path(file_path, output_format=output_format)
+    ensure_non_empty_output(result, file_path)
     return result
+
+
 def _format_parse_error(file_path: str, original_err: Exception, retry_err: Exception) -> str:
     """Build a user-friendly error message for unrecoverable parse failures."""
     path = Path(file_path)
@@ -153,6 +165,7 @@ def parse_document(
         raise ValueError(f"Not a file: {file_path}")
     if not os.access(file_path, os.R_OK):
         raise PermissionError(f"Cannot read file (permission denied): {file_path}")
+    validate_document_file(file_path)
     if use_cache is None:
         use_cache = bool(load_config().get("cache", True))
     if use_cache:
@@ -320,11 +333,13 @@ def _write_or_echo(output_text: str, output: Optional[str], stdout: bool, verbos
 @click.option(
     "--use-heavy",
     is_flag=True,
+    default=None,
     help="Force use of heavy parser (marker with OCR)",
 )
 @click.option(
     "--use-fast",
     is_flag=True,
+    default=None,
     help="Force use of fast parser (pymupdf4llm/markitdown)",
 )
 @click.option(
@@ -375,6 +390,8 @@ def main(
     try:
         config = load_config()
         output_format = format or config["format"]
+        force_heavy = bool(use_heavy if use_heavy is not None else config.get("use_heavy", False))
+        force_fast = bool(use_fast if use_fast is not None else config.get("use_fast", False))
         with _input_file_from_cli(file_path) as real_path:
             resolved_image_dir = image_dir
             if extract_images and resolved_image_dir is None:
@@ -383,8 +400,8 @@ def main(
             result = parse_document(
                 real_path,
                 output_format=output_format,
-                force_heavy=use_heavy,
-                force_fast=use_fast,
+                force_heavy=force_heavy,
+                force_fast=force_fast,
                 use_cache=not no_cache,
                 extract_images_flag=extract_images,
                 image_dir=resolved_image_dir,
@@ -399,7 +416,8 @@ def main(
         sys.exit(1)
 
     except ImportError as e:
-        click.secho(f"Error: {e}", fg="yellow", err=True)
+        message = friendly_error_message(MissingDependencyError(str(e)), file_path)
+        click.secho(f"Error: {message}", fg="yellow", err=True)
         click.echo(
             "\nTo fix, install missing dependencies:\n"
             "  pip install papyrus\n"
@@ -409,7 +427,7 @@ def main(
         sys.exit(1)
 
     except Exception as e:
-        click.secho(f"Error: {e}", fg="red", err=True)
+        click.secho(f"Error: {friendly_error_message(e, file_path)}", fg="red", err=True)
         if verbose:
             import traceback
             traceback.print_exc(file=sys.stderr)
@@ -429,6 +447,26 @@ def cache_cmd():
     pass
 
 
+@cli.group("config")
+def config_cmd():
+    """Inspect Papyrus runtime configuration."""
+    pass
+
+
+@config_cmd.command("show")
+def config_show_cmd():
+    """Show merged defaults from ~/.papyrus/config.toml."""
+    from .settings import config_path
+
+    path = config_path()
+    payload = {
+        "path": str(path),
+        "exists": path.exists(),
+        "defaults": load_config(),
+    }
+    click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
 @cache_cmd.command("info")
 def cache_info_cmd():
     """Show cache location, entries, and size."""
@@ -442,6 +480,25 @@ def cache_clear_cmd():
     info = clear_cache()
     secho(
         f"Cleared {info['entries']} cache entries from {info['cache_dir']}",
+        fg="green",
+    )
+
+
+@cli.command("repair-shebang")
+@click.option(
+    "--venv",
+    "venv_path",
+    type=click.Path(file_okay=False, dir_okay=True),
+    default=None,
+    help="Virtualenv directory to repair (default: sys.prefix)",
+)
+def repair_shebang_cmd(venv_path: Optional[str]):
+    """Repair stale Python shebangs in a moved virtual environment."""
+    from .shebang import repair_shebangs
+
+    info = repair_shebangs(venv_path or sys.prefix)
+    secho(
+        f"Checked {info['checked']} scripts, repaired {info['repaired']} in {info['venv']}",
         fg="green",
     )
 
@@ -616,7 +673,10 @@ def _parse_one_file(
         output_path.write_text(output_text, encoding="utf-8")
         return (input_path.name, True)
     except Exception as e:
-        error_text = f"Error parsing {input_path}:\n\n{type(e).__name__}: {e}\n\n"
+        error_text = (
+            f"Error parsing {input_path}:\n\n"
+            f"{type(e).__name__}: {friendly_error_message(e, str(input_path))}\n\n"
+        )
         error_text += traceback.format_exc()
         log_path.write_text(error_text, encoding="utf-8")
         return (input_path.name, False)
@@ -657,11 +717,13 @@ def _parse_one_file(
 @click.option(
     "--use-heavy",
     is_flag=True,
+    default=None,
     help="Force use of heavy parser (marker with OCR)",
 )
 @click.option(
     "--use-fast",
     is_flag=True,
+    default=None,
     help="Force use of fast parser (pymupdf4llm/markitdown)",
 )
 @click.option(
@@ -707,6 +769,8 @@ def batch_cmd(
     config = load_config()
     output_format = format or config["format"]
     executor_name = executor or config["batch_executor"]
+    force_heavy = bool(use_heavy if use_heavy is not None else config.get("use_heavy", False))
+    force_fast = bool(use_fast if use_fast is not None else config.get("use_fast", False))
     supported_exts = {
         ".pdf", ".pptx", ".docx", ".xlsx", ".html", ".htm",
         ".md", ".markdown", ".txt", ".text",
@@ -770,8 +834,8 @@ def batch_cmd(
                 out_file,
                 log_file,
                 output_format,
-                use_heavy,
-                use_fast,
+                force_heavy,
+                force_fast,
                 not no_cache,
                 extract_images,
             )
@@ -822,7 +886,7 @@ def run_cli():
     if len(sys.argv) > 1:
         first = sys.argv[1]
         # Known sub-commands + common flags that should not trigger default
-        known = {"parse", "batch", "setup", "mcp", "cache", "--help", "-h", "--version"}
+        known = {"parse", "batch", "setup", "mcp", "cache", "config", "repair-shebang", "--help", "-h", "--version"}
         if (first == "-" or not first.startswith("-")) and first not in known:
             sys.argv.insert(1, "parse")
 

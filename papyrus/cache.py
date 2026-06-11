@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import shutil
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -87,7 +88,7 @@ def store_cached_result(
     metadata = payload.setdefault("metadata", {})
     metadata["cache_hit"] = False
     metadata["cache_key"] = key
-    tmp_file = cache_file.with_suffix(".tmp")
+    tmp_file = cache_file.with_name(f"{cache_file.name}.{uuid.uuid4().hex}.tmp")
     tmp_file.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     tmp_file.replace(cache_file)
 

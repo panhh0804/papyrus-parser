@@ -306,6 +306,12 @@ papyrus document.pdf -v
 # Inspect or clear the parse cache
 papyrus cache info
 papyrus cache clear
+
+# Inspect merged runtime configuration
+papyrus config show
+
+# Repair moved virtualenv console-script shebangs
+papyrus repair-shebang --venv ~/papyrus-parser/venv
 ```
 
 ### Image Extraction
@@ -366,11 +372,17 @@ Papyrus reads optional defaults from `~/.papyrus/config.toml`:
 [defaults]
 format = "markdown"          # markdown or json
 cache = true                 # content-addressed parse cache
+use_heavy = false            # default to marker/OCR path
+use_fast = false             # default to fast path
 batch_executor = "threads"   # threads or processes
 workers = 4
 ```
 
 Command-line flags always override config values. The cache is keyed by file content, output format, parser mode, and Papyrus version, so changed files are re-parsed automatically.
+
+`papyrus config show` prints the active config path and merged defaults.
+
+Verbose mode (`-v`) now includes lightweight page/slide progress for PDFs and PPTX files before the third-party parser starts.
 
 ## Keeping Configs in Sync
 
@@ -733,6 +745,9 @@ done
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | Empty output | PDF is scanned (no text) | Use `papyrus <file> --use-heavy` |
+| Office `~$...docx` file | Word/PPT/Excel temporary lock file | Use the original `.docx`, `.pptx`, or `.xlsx` file |
+| `numpy.dtype size changed` | numpy 2.x ABI conflict with pandas/markitdown stack | Reinstall with `pip install 'numpy<2.0' --force-reinstall`; Papyrus now pins `numpy<2.0` |
+| `papyrus`/`pip` shebang points to old path | Project or venv directory was moved | Run `bash setup-unix.sh` or `python -m papyrus repair-shebang --venv ./venv` |
 | Garbled text | Wrong parser chosen | Check with `papyrus <file> -v` |
 | Very slow | Heavy path running unnecessarily | Use `papyrus <file> --use-fast` |
 | "Command not found" | Not in PATH | Source `~/.zshrc` or use full path |
@@ -1144,11 +1159,17 @@ Papyrus 会读取可选配置文件 `~/.papyrus/config.toml`：
 [defaults]
 format = "markdown"          # markdown 或 json
 cache = true                 # 基于内容 hash 的解析缓存
+use_heavy = false            # 默认走 marker/OCR heavy path
+use_fast = false             # 默认强制 fast path
 batch_executor = "threads"   # threads 或 processes
 workers = 4
 ```
 
 命令行参数总是优先于配置文件。缓存 key 包含文件内容、输出格式、解析模式和 Papyrus 版本，因此文件修改后会自动重新解析。
+
+`papyrus config show` 可以查看当前配置文件路径和合并后的默认值。
+
+verbose 模式（`-v`）会在第三方解析器开始前，对 PDF/PPTX 显示轻量页数/幻灯片进度。
 
 ## 保持配置同步
 

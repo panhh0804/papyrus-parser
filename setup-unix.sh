@@ -119,6 +119,51 @@ check_python3_venv() {
      return 1
  }
 
+# Repair stale shebangs after the project directory or virtualenv was moved.
+repair_shebangs() {
+    local venv_path="$1"
+    local venv_bin="$venv_path/bin"
+    local python_path="$venv_bin/python"
+
+    if [ ! -x "$python_path" ]; then
+        print_warning "Cannot repair shebangs: $python_path not found"
+        return 0
+    fi
+
+    print_info "Repairing virtualenv script shebangs..."
+    local checked=0
+    local repaired=0
+    local first_line
+    local tmp_file
+
+    for script in "$venv_bin"/*; do
+        [ -f "$script" ] || continue
+        case "$(basename "$script")" in
+            python|python[0-9]*|python-config) continue ;;
+        esac
+
+        first_line="$(head -n 1 "$script" 2>/dev/null || true)"
+        case "$first_line" in
+            '#!'*python*)
+                checked=$((checked + 1))
+                if [ "$first_line" != "#!$python_path" ]; then
+                    tmp_file="$(mktemp)"
+                    {
+                        printf '#!%s\n' "$python_path"
+                        tail -n +2 "$script"
+                    } > "$tmp_file"
+                    cat "$tmp_file" > "$script"
+                    rm -f "$tmp_file"
+                    chmod +x "$script"
+                    repaired=$((repaired + 1))
+                fi
+                ;;
+        esac
+    done
+
+    print_success "Shebang repair checked $checked scripts, repaired $repaired"
+}
+
 # Install Papyrus
 install_papyrus() {
     print_header "Installing Papyrus"
@@ -131,17 +176,22 @@ install_papyrus() {
             return 1
         fi
         print_info "Creating Python virtual environment..."
-        python3 -m venv venv
+        python3 -m venv "$venv_path"
         print_success "Virtual environment created"
     fi
+
+    repair_shebangs "$venv_path"
 
     print_info "Activating virtual environment..."
     source "$venv_path/bin/activate"
     print_success "Virtual environment activated"
 
+    repair_shebangs "$venv_path"
+
     print_info "Installing Papyrus and dependencies..."
     pip install --upgrade pip setuptools wheel
     pip install -e .
+    repair_shebangs "$venv_path"
     print_success "Papyrus installed successfully"
 
     return 0

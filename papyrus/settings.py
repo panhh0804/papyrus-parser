@@ -9,6 +9,8 @@ from typing import Any
 DEFAULT_CONFIG = {
     "format": "markdown",
     "cache": True,
+    "use_heavy": False,
+    "use_fast": False,
     "batch_executor": "threads",
     "workers": None,
 }
@@ -24,6 +26,8 @@ def load_config() -> dict[str, Any]:
     Supported keys under [defaults]:
     - format = "markdown" | "json"
     - cache = true | false
+    - use_heavy = true | false
+    - use_fast = true | false
     - batch_executor = "threads" | "processes"
     - workers = 4
     """
@@ -42,6 +46,13 @@ def load_config() -> dict[str, Any]:
         config["format"] = defaults["format"]
     if isinstance(defaults.get("cache"), bool):
         config["cache"] = defaults["cache"]
+    if isinstance(defaults.get("use_heavy"), bool):
+        config["use_heavy"] = defaults["use_heavy"]
+    if isinstance(defaults.get("use_fast"), bool):
+        config["use_fast"] = defaults["use_fast"]
+    if config["use_heavy"] and config["use_fast"]:
+        config["use_heavy"] = False
+        config["use_fast"] = False
     if defaults.get("batch_executor") in {"threads", "processes"}:
         config["batch_executor"] = defaults["batch_executor"]
     if isinstance(defaults.get("workers"), int) and defaults["workers"] > 0:

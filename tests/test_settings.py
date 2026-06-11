@@ -13,7 +13,7 @@ class SettingsTests(unittest.TestCase):
             config_dir = Path(tmp) / ".papyrus"
             config_dir.mkdir()
             (config_dir / "config.toml").write_text(
-                "[defaults]\nformat = \"json\"\ncache = false\nbatch_executor = \"processes\"\nworkers = 2\n",
+                "[defaults]\nformat = \"json\"\ncache = false\nuse_fast = true\nbatch_executor = \"processes\"\nworkers = 2\n",
                 encoding="utf-8",
             )
 
@@ -22,8 +22,25 @@ class SettingsTests(unittest.TestCase):
 
         self.assertEqual(config["format"], "json")
         self.assertFalse(config["cache"])
+        self.assertTrue(config["use_fast"])
+        self.assertFalse(config["use_heavy"])
         self.assertEqual(config["batch_executor"], "processes")
         self.assertEqual(config["workers"], 2)
+
+    def test_conflicting_parser_defaults_are_ignored(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_dir = Path(tmp) / ".papyrus"
+            config_dir.mkdir()
+            (config_dir / "config.toml").write_text(
+                "[defaults]\nuse_fast = true\nuse_heavy = true\n",
+                encoding="utf-8",
+            )
+
+            with patch.dict(os.environ, {"HOME": tmp}):
+                config = load_config()
+
+        self.assertFalse(config["use_fast"])
+        self.assertFalse(config["use_heavy"])
 
 
 if __name__ == "__main__":

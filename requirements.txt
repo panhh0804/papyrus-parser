@@ -1,5 +1,6 @@
 # Core dependencies
 click>=8.0
+numpy<2.0
 pymupdf4llm>=0.1.0
 markitdown>=0.0.5
 
