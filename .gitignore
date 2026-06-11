@@ -19,9 +19,16 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # Virtual environments
 venv/
+.venv/
 env/
 ENV/
 
@@ -36,12 +43,23 @@ ENV/
 # Test outputs
 test_output.json
 test_simple.pdf
+papyrus-output/
+parsed/
+output/
+outputs/
+*.log
+*.tmp
+*.parsed.md
+*.parsed.json
+*_parsed.md
+*_parsed.json
 
 # Models and data
 *.pth
 *.pt
 *.bin
 models/
+.cache/
 
 # Environment
 .env
