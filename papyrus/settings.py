@@ -71,7 +71,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
 
 
 def _load_simple_toml(path: Path) -> dict[str, Any]:
-    """Tiny TOML subset parser for Python 3.8/3.9 without tomllib."""
+    """Tiny TOML subset parser for runtimes without tomllib."""
     data: dict[str, Any] = {}
     current: dict[str, Any] = data
     for raw_line in path.read_text(encoding="utf-8").splitlines():
