@@ -11,7 +11,7 @@ class MCPServer:
     def __init__(self):
         self.version = "1.0.0"
 
-    def handle_request(self, request: dict) -> dict:
+    def handle_request(self, request: dict) -> Optional[dict]:
         """Handle MCP JSON-RPC 2.0 request."""
         request_id = request.get("id")
 
@@ -19,6 +19,8 @@ class MCPServer:
             method = request.get("method")
             params = request.get("params", {})
 
+            if request_id is None and str(method).startswith("notifications/"):
+                return None
             if method == "initialize":
                 result = self.initialize(params)
             elif method == "tools/list":
@@ -141,7 +143,21 @@ class MCPServer:
                 verbose=False,
             )
 
-            return result
+            text = (
+                json.dumps(result, ensure_ascii=False, indent=2)
+                if output_format == "json"
+                else result.get("content", "")
+            )
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": text,
+                    }
+                ],
+                "structuredContent": result,
+                "isError": False,
+            }
         except FileNotFoundError:
             raise ValueError(f"File not found: {file_path}")
         except Exception as e:
@@ -161,8 +177,9 @@ def run_mcp_server():
 
             request = json.loads(line)
             response = server.handle_request(request)
-            print(json.dumps(response))
-            sys.stdout.flush()
+            if response is not None:
+                print(json.dumps(response))
+                sys.stdout.flush()
 
         except EOFError:
             break

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Quick install script for doc-parse
+# Quick install script for Papyrus
 
 set -e
 
-echo "Installing doc-parse..."
+echo "Installing Papyrus..."
 
 # Detect Python
 if command -v python3 &> /dev/null; then
@@ -24,7 +24,7 @@ echo ""
 echo "✅ Installation complete!"
 echo ""
 echo "Test it:"
-echo "  doc-parse --help"
+echo "  papyrus --help"
 echo ""
 echo "Install heavy path support (optional):"
-echo "  pip install 'doc-parse[heavy]'"
+echo "  pip install 'papyrus[heavy]'"

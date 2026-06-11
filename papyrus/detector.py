@@ -3,13 +3,35 @@
 import os
 import mimetypes
 from pathlib import Path
-from typing import Optional, Tuple
 
 try:
     import fitz  # pymupdf
     HAS_PYMUPDF = True
 except ImportError:
     HAS_PYMUPDF = False
+
+try:
+    import magic
+    HAS_MAGIC = True
+except ImportError:
+    HAS_MAGIC = False
+
+
+EXTENSION_MAP = {
+    '.pdf': 'pdf',
+    '.docx': 'docx',
+    '.doc': 'doc',
+    '.md': 'markdown',
+    '.markdown': 'markdown',
+    '.txt': 'txt',
+    '.text': 'txt',
+    '.html': 'html',
+    '.htm': 'html',
+    '.xlsx': 'excel',
+    '.xls': 'excel',
+    '.pptx': 'pptx',
+    '.ppt': 'ppt',
+}
 
 
 def detect_file_type(file_path: str) -> str:
@@ -21,35 +43,44 @@ def detect_file_type(file_path: str) -> str:
     path = Path(file_path)
     ext = path.suffix.lower()
 
-    # Direct extension mapping
-    ext_map = {
-        '.pdf': 'pdf',
-        '.docx': 'docx',
-        '.doc': 'doc',
-        '.md': 'markdown',
-        '.markdown': 'markdown',
-        '.txt': 'txt',
-        '.html': 'html',
-        '.htm': 'html',
-        '.xlsx': 'excel',
-        '.xls': 'excel',
-        '.pptx': 'pptx',
-        '.ppt': 'ppt',
-    }
+    if ext in EXTENSION_MAP:
+        return EXTENSION_MAP[ext]
 
-    if ext in ext_map:
-        return ext_map[ext]
+    # Fallback to libmagic when the extension is missing or unfamiliar.
+    if HAS_MAGIC:
+        try:
+            magic_mime = magic.from_file(str(path), mime=True)
+            detected = _type_from_mime(magic_mime)
+            if detected != "unknown":
+                return detected
+        except Exception:
+            pass
 
-    # Fallback to mimetype
+    # Last fallback to Python's mimetype table.
     mime, _ = mimetypes.guess_type(file_path)
     if mime:
-        if 'pdf' in mime:
-            return 'pdf'
-        if 'word' in mime or 'document' in mime:
-            return 'docx'
-        if 'text' in mime:
-            return 'txt'
+        return _type_from_mime(mime)
 
+    return 'unknown'
+
+
+def _type_from_mime(mime: str) -> str:
+    """Map a MIME type to Papyrus' internal file type names."""
+    mime = (mime or "").lower()
+    if 'pdf' in mime:
+        return 'pdf'
+    if 'presentation' in mime or 'powerpoint' in mime:
+        return 'pptx'
+    if 'spreadsheet' in mime or 'excel' in mime:
+        return 'excel'
+    if 'word' in mime or 'document' in mime:
+        return 'docx'
+    if 'html' in mime:
+        return 'html'
+    if 'markdown' in mime:
+        return 'markdown'
+    if mime.startswith('text/'):
+        return 'txt'
     return 'unknown'
 
 

@@ -79,11 +79,17 @@ def parse_with_fast_path(
 
     if not path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
+    if output_format not in {"markdown", "json"}:
+        raise ValueError(f"Unsupported output format: {output_format}")
 
     parser_used = "markitdown"
+    suffix = path.suffix.lower()
 
+    if suffix in {".md", ".markdown", ".txt", ".text"}:
+        content = path.read_text(encoding="utf-8", errors="replace")
+        parser_used = "text"
     # Try pymupdf4llm for PDFs first (if not forced to markitdown)
-    if path.suffix.lower() == ".pdf" and not use_markitdown:
+    elif suffix == ".pdf" and not use_markitdown:
         try:
             content = parse_pdf_with_pymupdf4llm(file_path)
             parser_used = "pymupdf4llm"

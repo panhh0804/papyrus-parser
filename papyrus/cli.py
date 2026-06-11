@@ -10,6 +10,7 @@ from typing import Optional
 
 import click
 
+from . import __version__
 from .detector import detect_file_type, is_scanned_document
 from .router import route_file, get_path_reason
 from .parsers.fast_path import parse_with_fast_path
@@ -25,12 +26,16 @@ def _do_parse(
     verbose: bool,
 ) -> dict:
     """Inner parse routine without retry logic."""
+    if output_format not in {"markdown", "json"}:
+        raise ValueError(f"Unsupported output format: {output_format}")
+    if force_heavy and force_fast:
+        raise ValueError("Cannot use both --use-heavy and --use-fast")
+
     file_type = detect_file_type(file_path)
     if verbose:
         echo(f"📄 File: {file_path}", err=True)
         echo(f"📋 Type: {file_type}", err=True)
-    if force_heavy and force_fast:
-        raise ValueError("Cannot use both --use-heavy and --use-fast")
+
     route = route_file(file_path, force_heavy=force_heavy, force_fast=force_fast)
     if route == "unsupported":
         raise ValueError(f"Unsupported file type: {file_type}")
@@ -250,6 +255,7 @@ def main(
 
 
 @click.group()
+@click.version_option(version=__version__, prog_name="papyrus")
 def cli():
     """Papyrus - Universal document parser for AI agents."""
     pass

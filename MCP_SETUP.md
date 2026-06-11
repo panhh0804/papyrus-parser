@@ -15,8 +15,6 @@ MCP is a standardized protocol that allows AI models to interact with external t
 ### Option 1: Interactive Mode (for testing)
 
 ```bash
-cd ~/papyrus
-source venv/bin/activate
 python -m papyrus.mcp_server
 ```
 
@@ -39,9 +37,8 @@ Edit or create `~/.claude/claude.json`:
 {
   "mcpServers": {
     "papyrus": {
-      "command": "python",
-      "args": ["-m", "papyrus.mcp_server"],
-      "cwd": "$HOME/papyrus"
+      "command": "/path/to/python",
+      "args": ["-m", "papyrus.mcp_server"]
     }
   }
 }
@@ -92,7 +89,7 @@ Edit or create `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers]
-papyrus = {command = "python", args = ["-m", "papyrus.mcp_server"], cwd = "$HOME/papyrus"}
+papyrus = {command = "/path/to/python", args = ["-m", "papyrus.mcp_server"]}
 ```
 
 Or use Codex's UI to add MCP server:
@@ -106,7 +103,7 @@ Similar to Codex. Edit `~/.kimi-code/config.toml`:
 
 ```toml
 [mcp_servers]
-papyrus = {command = "python", args = ["-m", "papyrus.mcp_server"], cwd = "$HOME/papyrus"}
+papyrus = {command = "/path/to/python", args = ["-m", "papyrus.mcp_server"]}
 ```
 
 ## Testing MCP Setup
@@ -114,12 +111,9 @@ papyrus = {command = "python", args = ["-m", "papyrus.mcp_server"], cwd = "$HOME
 ### 1. Test Server Directly
 
 ```bash
-# In one terminal, start the server
-python -m papyrus.mcp_server
-
-# In another terminal, send a test request
-cat << 'EOF' | nc localhost 9000
-{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}
+# Send a JSON-RPC request over stdio
+cat << 'EOF' | python -m papyrus.mcp_server
+{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}
 EOF
 ```
 
@@ -146,9 +140,8 @@ You can pass environment variables to the MCP server:
 {
   "mcpServers": {
     "papyrus": {
-      "command": "python",
+      "command": "/path/to/python",
       "args": ["-m", "papyrus.mcp_server"],
-      "cwd": "$HOME/papyrus",
       "env": {
         "PAPYRUS_TESSERACT_CMD": "/custom/path/to/tesseract"
       }
@@ -165,9 +158,8 @@ If Papyrus is installed in a non-standard location:
 {
   "mcpServers": {
     "papyrus": {
-      "command": "python",
-      "args": ["-m", "papyrus.mcp_server"],
-      "cwd": "/custom/papyrus/path"
+      "command": "/path/to/python",
+      "args": ["-m", "papyrus.mcp_server"]
     }
   }
 }
@@ -206,7 +198,7 @@ tail -n 50 ~/.papyrus_mcp.log
 ### Tool Not Finding Papyrus
 
 1. Verify MCP server is running: `ps aux | grep papyrus`
-2. Test manually: `python -m papyrus.mcp_server`
+2. Test manually: `echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | python -m papyrus.mcp_server`
 3. Check configuration file format (JSON must be valid)
 4. Restart your tool after configuration changes
 

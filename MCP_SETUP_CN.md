@@ -15,8 +15,6 @@ MCP 是一个标准化的协议，允许 AI 模型与外部工具交互。优势
 ### 方式 1：交互模式（用于测试）
 
 ```bash
-cd ~/papyrus
-source venv/bin/activate
 python -m papyrus.mcp_server
 ```
 
@@ -39,9 +37,8 @@ nohup python -m papyrus.mcp_server > ~/.papyrus_mcp.log 2>&1 &
 {
   "mcpServers": {
     "papyrus": {
-      "command": "python",
-      "args": ["-m", "papyrus.mcp_server"],
-      "cwd": "$HOME/papyrus"
+      "command": "/path/to/python",
+      "args": ["-m", "papyrus.mcp_server"]
     }
   }
 }
@@ -92,7 +89,7 @@ nohup python -m papyrus.mcp_server > ~/.papyrus_mcp.log 2>&1 &
 
 ```toml
 [mcp_servers]
-papyrus = {command = "python", args = ["-m", "papyrus.mcp_server"], cwd = "$HOME/papyrus"}
+papyrus = {command = "/path/to/python", args = ["-m", "papyrus.mcp_server"]}
 ```
 
 或使用 Codex 的 UI 添加 MCP 服务器：
@@ -106,7 +103,7 @@ codex config add-mcp-server papyrus python -m papyrus.mcp_server
 
 ```toml
 [mcp_servers]
-papyrus = {command = "python", args = ["-m", "papyrus.mcp_server"], cwd = "$HOME/papyrus"}
+papyrus = {command = "/path/to/python", args = ["-m", "papyrus.mcp_server"]}
 ```
 
 ## 测试 MCP 设置
@@ -114,12 +111,9 @@ papyrus = {command = "python", args = ["-m", "papyrus.mcp_server"], cwd = "$HOME
 ### 1. 直接测试服务器
 
 ```bash
-# 在一个终端启动服务器
-python -m papyrus.mcp_server
-
-# 在另一个终端发送测试请求
-cat << 'EOF' | nc localhost 9000
-{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}
+# 通过 stdio 发送 JSON-RPC 请求
+cat << 'EOF' | python -m papyrus.mcp_server
+{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}
 EOF
 ```
 
@@ -146,9 +140,8 @@ tail -f ~/.papyrus_mcp.log
 {
   "mcpServers": {
     "papyrus": {
-      "command": "python",
+      "command": "/path/to/python",
       "args": ["-m", "papyrus.mcp_server"],
-      "cwd": "$HOME/papyrus",
       "env": {
         "PAPYRUS_TESSERACT_CMD": "/custom/path/to/tesseract"
       }
@@ -165,9 +158,8 @@ tail -f ~/.papyrus_mcp.log
 {
   "mcpServers": {
     "papyrus": {
-      "command": "python",
-      "args": ["-m", "papyrus.mcp_server"],
-      "cwd": "/custom/papyrus/path"
+      "command": "/path/to/python",
+      "args": ["-m", "papyrus.mcp_server"]
     }
   }
 }
@@ -206,7 +198,7 @@ tail -n 50 ~/.papyrus_mcp.log
 ### 工具无法找到 Papyrus
 
 1. 验证 MCP 服务器正在运行：`ps aux | grep papyrus`
-2. 手动测试：`python -m papyrus.mcp_server`
+2. 手动测试：`echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | python -m papyrus.mcp_server`
 3. 检查配置文件格式（JSON 必须有效）
 4. 配置更改后重启工具
 

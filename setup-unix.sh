@@ -57,6 +57,11 @@ command_exists() {
 install_tesseract_macos() {
     print_header "Installing Tesseract (macOS)"
 
+    if command_exists tesseract; then
+        print_success "Tesseract already installed: $(tesseract --version | head -1)"
+        return 0
+    fi
+
     if command_exists brew; then
         print_info "Using Homebrew to install Tesseract..."
         brew install tesseract
@@ -73,6 +78,11 @@ install_tesseract_macos() {
 # Install Tesseract for Linux
 install_tesseract_linux() {
     print_header "Installing Tesseract (Linux)"
+
+    if command_exists tesseract; then
+        print_success "Tesseract already installed: $(tesseract --version | head -1)"
+        return 0
+    fi
 
     if command_exists apt-get; then
         print_info "Using apt to install Tesseract and dependencies..."
@@ -171,7 +181,7 @@ add_to_path() {
             local shell_rc="$HOME/.bashrc"
         fi
 
-        local path_export="export PATH=\"\$HOME/papyrus/venv/bin:\$PATH\""
+        local path_export="export PATH=\"$venv_bin:\$PATH\""
 
         if grep -q "papyrus/venv/bin" "$shell_rc"; then
             print_success "Papyrus is already in PATH"

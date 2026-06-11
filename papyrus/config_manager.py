@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Optional, List
 
@@ -84,6 +85,17 @@ class ConfigManager:
 
     def __init__(self):
         self.home = Path.home()
+
+    def _python_command(self) -> str:
+        """Return the Python executable that can import this Papyrus install."""
+        return sys.executable or "python"
+
+    def _mcp_server_config(self) -> dict:
+        """Build a portable MCP server config for the current installation."""
+        return {
+            "command": self._python_command(),
+            "args": ["-m", "papyrus.mcp_server"],
+        }
 
     def check_all_configs(self) -> List[str]:
         """Check which markdown config files are missing the template hash (outdated).
@@ -209,12 +221,7 @@ Default (fast path) is fine for:
         if "mcpServers" not in config:
             config["mcpServers"] = {}
 
-        papyrus_path = Path.home() / "papyrus"
-        config["mcpServers"]["papyrus"] = {
-            "command": "python",
-            "args": ["-m", "papyrus.mcp_server"],
-            "cwd": str(papyrus_path),
-        }
+        config["mcpServers"]["papyrus"] = self._mcp_server_config()
 
         try:
             claude_json.write_text(json.dumps(config, indent=2), encoding="utf-8")
@@ -371,13 +378,12 @@ If you see empty output or garbled text:
             print_compat(f"✓ Papyrus MCP already configured in {codex_config}")
             return True
 
-        # Add MCP server configuration
-        papyrus_path = Path.home() / "papyrus"
+        # Add MCP server configuration for the current Python environment.
+        command = json.dumps(self._python_command())
         mcp_config = f"""
 [mcp_servers.papyrus]
-command = "python"
+command = {command}
 args = ["-m", "papyrus.mcp_server"]
-cwd = "{papyrus_path}"
 """
 
         if "[mcp_servers]" not in config_content:
@@ -508,13 +514,12 @@ Use `--use-heavy` when output is empty or garbled (indicates scanned PDF).
             print_compat(f"✓ Papyrus MCP already configured in {kimi_config}")
             return True
 
-        # Add MCP server configuration
-        papyrus_path = Path.home() / "papyrus"
+        # Add MCP server configuration for the current Python environment.
+        command = json.dumps(self._python_command())
         mcp_config = f"""
 [mcp_servers.papyrus]
-command = "python"
+command = {command}
 args = ["-m", "papyrus.mcp_server"]
-cwd = "{papyrus_path}"
 """
 
         if "[mcp_servers]" not in config_content:
@@ -650,8 +655,8 @@ Papyrus already handles all of these — using it saves time and avoids version 
 
 ---
 
-**Installation Path**: `$HOME/papyrus/venv/bin/papyrus`
-**Available globally** — `papyrus` is in your PATH via `~/.zshrc` or `~/.bashrc`
+**Installation Path**: run `command -v papyrus` to see the active executable.
+**Available globally** — `papyrus` should be in your PATH via your active Python environment or shell profile.
 
 For detailed documentation, see:
 - `$HOME/papyrus/README.md` — Full feature reference

@@ -13,6 +13,19 @@ authors = [
 ]
 license = {text = "MIT"}
 keywords = ["pdf", "parser", "markdown", "document", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Markup :: Markdown",
+]
 
 dependencies = [
     "pymupdf4llm>=0.1.0",
@@ -32,10 +45,19 @@ dev = [
     "pytest>=7.0",
     "black>=22.0",
     "flake8>=4.0",
+    "ruff>=0.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/panhh0804/papyrus-parser"
+Repository = "https://github.com/panhh0804/papyrus-parser"
+Issues = "https://github.com/panhh0804/papyrus-parser/issues"
 
 [project.scripts]
 papyrus = "papyrus.cli:run_cli"
 
 [tool.setuptools]
 packages = ["papyrus", "papyrus.parsers"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
