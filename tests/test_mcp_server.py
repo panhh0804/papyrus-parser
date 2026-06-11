@@ -37,6 +37,16 @@ class MCPServerTests(unittest.TestCase):
 
         self.assertIsNone(response)
 
+    def test_tool_schema_exposes_cache_flag(self):
+        response = MCPServer().handle_request(
+            {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+        )
+
+        properties = response["result"]["tools"][0]["inputSchema"]["properties"]
+        self.assertIn("use_cache", properties)
+        self.assertIn("extract_images", properties)
+        self.assertIn("image_dir", properties)
+
 
 if __name__ == "__main__":
     unittest.main()

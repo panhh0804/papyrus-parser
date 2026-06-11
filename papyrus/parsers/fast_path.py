@@ -1,8 +1,14 @@
 """Fast path: lightweight parsing using pymupdf4llm and markitdown."""
 
+import contextlib
+import io
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Dict, Any
+
+from ..detector import detect_file_type
 
 try:
     import pymupdf4llm
@@ -23,12 +29,28 @@ except ImportError:
     HAS_MARKITDOWN = False
 
 
+@contextlib.contextmanager
+def _suppress_library_stdout():
+    """Suppress noisy Python and C-level stdout from third-party parsers."""
+    sys_stdout = io.StringIO()
+    saved_fd = os.dup(1)
+    try:
+        with tempfile.TemporaryFile(mode="w+b") as tmp:
+            os.dup2(tmp.fileno(), 1)
+            with contextlib.redirect_stdout(sys_stdout):
+                yield
+    finally:
+        os.dup2(saved_fd, 1)
+        os.close(saved_fd)
+
+
 def parse_pdf_with_pymupdf4llm(file_path: str) -> str:
     """Parse PDF using pymupdf4llm (optimized for LLM consumption)."""
     if not HAS_PYMUPDF4LLM:
         raise ImportError("pymupdf4llm not installed. Run: pip install pymupdf4llm")
 
-    md_text = pymupdf4llm.to_markdown(file_path)
+    with _suppress_library_stdout():
+        md_text = pymupdf4llm.to_markdown(file_path)
     return md_text
 
 
@@ -55,7 +77,8 @@ def parse_with_markitdown(file_path: str) -> str:
         raise ImportError("markitdown not installed. Run: pip install markitdown")
 
     converter = markitdown.MarkItDown()
-    result = converter.convert(file_path)
+    with _suppress_library_stdout():
+        result = converter.convert(file_path)
     return result.text_content
 
 
@@ -84,12 +107,13 @@ def parse_with_fast_path(
 
     parser_used = "markitdown"
     suffix = path.suffix.lower()
+    file_type = detect_file_type(str(path))
 
-    if suffix in {".md", ".markdown", ".txt", ".text"}:
+    if file_type in {"markdown", "txt"}:
         content = path.read_text(encoding="utf-8", errors="replace")
         parser_used = "text"
     # Try pymupdf4llm for PDFs first (if not forced to markitdown)
-    elif suffix == ".pdf" and not use_markitdown:
+    elif file_type == "pdf" and not use_markitdown:
         try:
             content = parse_pdf_with_pymupdf4llm(file_path)
             parser_used = "pymupdf4llm"

@@ -291,12 +291,41 @@ papyrus document.pdf --format json
 # Save to file
 papyrus report.pdf -o result.md
 
+# Extract embedded images beside the output file
+papyrus slides.pptx -o slides.md --extract-images
+
+# Read from stdin
+cat notes.md | papyrus -
+
 # Force OCR for scanned documents
 papyrus scanned_exam.pdf --use-heavy
 
 # Verbose output (shows routing decision)
 papyrus document.pdf -v
+
+# Inspect or clear the parse cache
+papyrus cache info
+papyrus cache clear
 ```
+
+### Image Extraction
+
+Use `--extract-images` to write embedded assets to disk while keeping text output stable:
+
+```bash
+# Default image directory: slides_images/
+papyrus slides.pptx -o slides.md --extract-images
+
+# Custom image directory
+papyrus report.pdf -o report.md --extract-images --image-dir ./report_assets/images
+```
+
+Output contract:
+- PDF images are extracted with names like `page-0001-image-001.png`
+- PPTX images are extracted from `ppt/media/` with names like `image-0001-image1.png`
+- DOCX images are extracted from `word/media/`
+- Markdown output appends an `Extracted Images` section with relative image links
+- JSON output includes `assets.images[]` plus `metadata.images_extracted` and `metadata.image_dir`
 
 ## Batch Processing
 
@@ -309,19 +338,39 @@ papyrus batch ./lectures
 # Specify output directory and 4 parallel workers
 papyrus batch ./lectures -o ./parsed --workers 4
 
+# Use process workers for CPU-heavy OCR workloads
+papyrus batch ./lectures -o ./parsed --executor processes --workers 4
+
 # Recursively process subdirectories
 papyrus batch ./lectures -o ./parsed -r
 
 # Output as JSON instead of Markdown
 papyrus batch ./lectures -o ./parsed --format json
+
+# Extract images beside each parsed output
+papyrus batch ./lectures -o ./parsed --extract-images
 ```
 
 **Features:**
 - Auto-discovers PDF, PPTX, DOCX, XLSX, HTML, Markdown, and text files
-- Parallel parsing with configurable workers
+- Parallel parsing with configurable worker count and thread/process executor
 - Progress report (`✅ [3/20] file.pdf`)
 - Errors saved to individual `.log` files — successful files keep going
 - Preserves subdirectory structure in the output folder
+
+## Runtime Configuration
+
+Papyrus reads optional defaults from `~/.papyrus/config.toml`:
+
+```toml
+[defaults]
+format = "markdown"          # markdown or json
+cache = true                 # content-addressed parse cache
+batch_executor = "threads"   # threads or processes
+workers = 4
+```
+
+Command-line flags always override config values. The cache is keyed by file content, output format, parser mode, and Papyrus version, so changed files are re-parsed automatically.
 
 ## Keeping Configs in Sync
 
@@ -1020,12 +1069,41 @@ papyrus document.pdf --format json
 # 保存到文件
 papyrus report.pdf -o result.md
 
+# 提取内嵌图片到输出文件旁边
+papyrus slides.pptx -o slides.md --extract-images
+
+# 从 stdin 读取
+cat notes.md | papyrus -
+
 # 对扫描件使用 OCR
 papyrus scanned_exam.pdf --use-heavy
 
 # 详细输出（显示路由决策）
 papyrus document.pdf -v
+
+# 查看或清空解析缓存
+papyrus cache info
+papyrus cache clear
 ```
+
+### 图片提取
+
+使用 `--extract-images` 将文档里的图片单独写入磁盘，同时保持文本输出稳定：
+
+```bash
+# 默认图片目录：slides_images/
+papyrus slides.pptx -o slides.md --extract-images
+
+# 自定义图片目录
+papyrus report.pdf -o report.md --extract-images --image-dir ./report_assets/images
+```
+
+输出契约：
+- PDF 图片命名为 `page-0001-image-001.png`
+- PPTX 图片从 `ppt/media/` 提取，命名为 `image-0001-image1.png`
+- DOCX 图片从 `word/media/` 提取
+- Markdown 输出会追加 `Extracted Images` 小节，使用相对路径引用图片
+- JSON 输出会包含 `assets.images[]`，以及 `metadata.images_extracted` 和 `metadata.image_dir`
 
 ## 批量处理
 
@@ -1038,19 +1116,39 @@ papyrus batch ./课件
 # 指定输出目录和 4 个并发 worker
 papyrus batch ./课件 -o ./解析结果 --workers 4
 
+# 对 CPU 密集型 OCR 任务使用进程并行
+papyrus batch ./课件 -o ./解析结果 --executor processes --workers 4
+
 # 递归处理子目录
 papyrus batch ./课件 -o ./解析结果 -r
 
 # 输出 JSON 而不是 Markdown
 papyrus batch ./课件 -o ./解析结果 --format json
+
+# 为每个解析结果提取图片
+papyrus batch ./课件 -o ./解析结果 --extract-images
 ```
 
 **特性：**
 - 自动识别 PDF、PPTX、DOCX、XLSX、HTML、Markdown、文本文件
-- 可配置并发数进行并行解析
+- 可配置并发数和线程/进程执行器
 - 实时进度报告（`✅ [3/20] file.pdf`）
 - 错误写入独立的 `.log` 文件，成功文件继续处理
 - 输出目录保留原始的子目录结构
+
+## 运行时配置
+
+Papyrus 会读取可选配置文件 `~/.papyrus/config.toml`：
+
+```toml
+[defaults]
+format = "markdown"          # markdown 或 json
+cache = true                 # 基于内容 hash 的解析缓存
+batch_executor = "threads"   # threads 或 processes
+workers = 4
+```
+
+命令行参数总是优先于配置文件。缓存 key 包含文件内容、输出格式、解析模式和 Papyrus 版本，因此文件修改后会自动重新解析。
 
 ## 保持配置同步
 

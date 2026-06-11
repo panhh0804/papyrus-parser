@@ -3,18 +3,24 @@
 import os
 import sys
 import json
+import tempfile
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
 import click
 
 from . import __version__
+from .cache import cache_info, cache_key, clear_cache, load_cached_result, store_cached_result
 from .detector import detect_file_type, is_scanned_document
+from .images import append_image_section, default_image_dir, extract_images
+from .metadata import merge_metadata
 from .router import route_file, get_path_reason
 from .parsers.fast_path import parse_with_fast_path
 from .parsers.heavy_path import parse_with_marker
+from .settings import load_config
 from .utils import echo, secho
 
 
@@ -114,6 +120,10 @@ def parse_document(
     output_format: str = "markdown",
     force_heavy: bool = False,
     force_fast: bool = False,
+    use_cache: Optional[bool] = None,
+    extract_images_flag: bool = False,
+    image_dir: Optional[str] = None,
+    image_reference_dir: Optional[str] = None,
     verbose: bool = False,
 ) -> dict:
     """
@@ -124,6 +134,10 @@ def parse_document(
         output_format: Output format ("markdown" or "json")
         force_heavy: Force use of heavy parser
         force_fast: Force use of fast parser
+        use_cache: Use content-addressed result cache
+        extract_images_flag: Extract embedded images to disk
+        image_dir: Directory for extracted images
+        image_reference_dir: Directory used to build Markdown-relative paths
         verbose: Show detailed parsing information
     Returns:
         Dict with "content" and "format" keys
@@ -139,8 +153,39 @@ def parse_document(
         raise ValueError(f"Not a file: {file_path}")
     if not os.access(file_path, os.R_OK):
         raise PermissionError(f"Cannot read file (permission denied): {file_path}")
+    if use_cache is None:
+        use_cache = bool(load_config().get("cache", True))
+    if use_cache:
+        cached = load_cached_result(file_path, output_format, force_heavy, force_fast)
+        if cached is not None:
+            if verbose:
+                echo("⚡ Cache hit", err=True)
+            return _maybe_extract_images(
+                cached,
+                file_path,
+                output_format,
+                extract_images_flag,
+                image_dir,
+                image_reference_dir,
+                verbose,
+            )
     try:
-        return _do_parse(file_path, output_format, force_heavy, force_fast, verbose)
+        result = _do_parse(file_path, output_format, force_heavy, force_fast, verbose)
+        result = merge_metadata(result, file_path)
+        if use_cache:
+            metadata = result.setdefault("metadata", {})
+            metadata["cache_hit"] = False
+            metadata["cache_key"] = cache_key(file_path, output_format, force_heavy, force_fast)
+            store_cached_result(file_path, output_format, force_heavy, force_fast, result)
+        return _maybe_extract_images(
+            result,
+            file_path,
+            output_format,
+            extract_images_flag,
+            image_dir,
+            image_reference_dir,
+            verbose,
+        )
     except Exception as first_err:
         err_msg = str(first_err)
         is_premature_close = "premature close" in err_msg.lower()
@@ -153,20 +198,112 @@ def parse_document(
                     err=True,
                 )
             try:
-                return _do_parse(file_path, output_format, force_heavy, True, verbose)
+                result = _do_parse(file_path, output_format, force_heavy, True, verbose)
+                result = merge_metadata(result, file_path)
+                if use_cache:
+                    metadata = result.setdefault("metadata", {})
+                    metadata["cache_hit"] = False
+                    metadata["cache_key"] = cache_key(file_path, output_format, force_heavy, True)
+                    store_cached_result(file_path, output_format, force_heavy, True, result)
+                return _maybe_extract_images(
+                    result,
+                    file_path,
+                    output_format,
+                    extract_images_flag,
+                    image_dir,
+                    image_reference_dir,
+                    verbose,
+                )
             except Exception as retry_err:
                 raise RuntimeError(
                     _format_parse_error(file_path, first_err, retry_err)
                 ) from retry_err
         raise
+
+
+def _maybe_extract_images(
+    result: dict,
+    file_path: str,
+    output_format: str,
+    extract_images_flag: bool,
+    image_dir: Optional[str],
+    image_reference_dir: Optional[str],
+    verbose: bool,
+) -> dict:
+    """Attach extracted image assets to a parse result when requested."""
+    if not extract_images_flag:
+        return result
+
+    target_dir = image_dir or str(default_image_dir(file_path))
+    images = extract_images(file_path, target_dir, reference_dir=image_reference_dir)
+    result.setdefault("assets", {})["images"] = images
+    metadata = result.setdefault("metadata", {})
+    metadata["images_extracted"] = len(images)
+    metadata["image_dir"] = str(Path(target_dir).expanduser().resolve())
+    if output_format == "markdown":
+        result["content"] = append_image_section(result.get("content", ""), images)
+    if verbose:
+        echo(f"🖼 Extracted {len(images)} images to {metadata['image_dir']}", err=True)
+    return result
+
+
+@contextmanager
+def _input_file_from_cli(file_path: str):
+    """Yield a real file path, materializing stdin when file_path is '-'."""
+    if file_path != "-":
+        yield file_path
+        return
+
+    data = sys.stdin.buffer.read()
+    if not data:
+        raise ValueError("No data received on stdin")
+    suffix = _stdin_suffix(data)
+    tmp = tempfile.NamedTemporaryFile(prefix="papyrus-stdin-", suffix=suffix, delete=False)
+    try:
+        tmp.write(data)
+        tmp.close()
+        yield tmp.name
+    finally:
+        try:
+            Path(tmp.name).unlink()
+        except OSError:
+            pass
+
+
+def _stdin_suffix(data: bytes) -> str:
+    """Choose a useful temporary suffix for stdin content."""
+    if data.startswith(b"%PDF"):
+        return ".pdf"
+    try:
+        data.decode("utf-8")
+        return ".txt"
+    except UnicodeDecodeError:
+        return ".input"
+
+
+def _output_text(result: dict, output_format: str) -> str:
+    if output_format == "json":
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    return result["content"]
+
+
+def _write_or_echo(output_text: str, output: Optional[str], stdout: bool, verbose: bool) -> None:
+    if output and not stdout:
+        Path(output).write_text(output_text, encoding="utf-8")
+        if verbose:
+            echo(f"✅ Saved to: {output}", err=True)
+    else:
+        click.echo(output_text)
+
+
 @click.command()
-@click.argument("file_path", type=click.Path(exists=True))
+@click.argument("file_path", type=click.Path(exists=False))
 @click.option(
     "--format",
     "-f",
     type=click.Choice(["markdown", "json"]),
-    default="markdown",
-    help="Output format (markdown or json)",
+    default=None,
+    help="Output format (markdown or json). Defaults to ~/.papyrus/config.toml or markdown.",
 )
 @click.option(
     "--output",
@@ -174,6 +311,11 @@ def parse_document(
     type=click.Path(),
     default=None,
     help="Output file path (stdout if not specified)",
+)
+@click.option(
+    "--stdout",
+    is_flag=True,
+    help="Force output to stdout even when --output is set",
 )
 @click.option(
     "--use-heavy",
@@ -191,13 +333,33 @@ def parse_document(
     is_flag=True,
     help="Show detailed parsing information",
 )
+@click.option(
+    "--no-cache",
+    is_flag=True,
+    help="Disable the content-addressed parse cache for this run",
+)
+@click.option(
+    "--extract-images",
+    is_flag=True,
+    help="Extract embedded PDF/PPTX/DOCX images to disk and add asset references",
+)
+@click.option(
+    "--image-dir",
+    type=click.Path(),
+    default=None,
+    help="Directory for --extract-images (default: <output>_images or <input>_images)",
+)
 def main(
     file_path: str,
-    format: str,
+    format: Optional[str],
     output: Optional[str],
+    stdout: bool,
     use_heavy: bool,
     use_fast: bool,
     verbose: bool,
+    no_cache: bool,
+    extract_images: bool,
+    image_dir: Optional[str],
 ):
     """
     Parse documents to markdown or JSON.
@@ -211,26 +373,26 @@ def main(
         papyrus scanned_document.pdf --use-heavy
     """
     try:
-        result = parse_document(
-            file_path,
-            output_format=format,
-            force_heavy=use_heavy,
-            force_fast=use_fast,
-            verbose=verbose,
-        )
+        config = load_config()
+        output_format = format or config["format"]
+        with _input_file_from_cli(file_path) as real_path:
+            resolved_image_dir = image_dir
+            if extract_images and resolved_image_dir is None:
+                resolved_image_dir = str(default_image_dir(real_path, output))
+            image_reference_dir = str(Path(output).parent) if output else str(Path.cwd())
+            result = parse_document(
+                real_path,
+                output_format=output_format,
+                force_heavy=use_heavy,
+                force_fast=use_fast,
+                use_cache=not no_cache,
+                extract_images_flag=extract_images,
+                image_dir=resolved_image_dir,
+                image_reference_dir=image_reference_dir,
+                verbose=verbose,
+            )
 
-        # Output
-        if format == "json":
-            output_text = json.dumps(result, ensure_ascii=False, indent=2)
-        else:
-            output_text = result["content"]
-
-        if output:
-            Path(output).write_text(output_text, encoding="utf-8")
-            if verbose:
-                echo(f"✅ Saved to: {output}", err=True)
-        else:
-            click.echo(output_text)
+        _write_or_echo(_output_text(result, output_format), output, stdout, verbose)
 
     except FileNotFoundError as e:
         click.secho(f"Error: {e}", fg="red", err=True)
@@ -259,6 +421,29 @@ def main(
 def cli():
     """Papyrus - Universal document parser for AI agents."""
     pass
+
+
+@cli.group("cache")
+def cache_cmd():
+    """Inspect or clear Papyrus parse cache."""
+    pass
+
+
+@cache_cmd.command("info")
+def cache_info_cmd():
+    """Show cache location, entries, and size."""
+    info = cache_info()
+    click.echo(json.dumps(info, ensure_ascii=False, indent=2))
+
+
+@cache_cmd.command("clear")
+def cache_clear_cmd():
+    """Delete all cached parse results."""
+    info = clear_cache()
+    secho(
+        f"Cleared {info['entries']} cache entries from {info['cache_dir']}",
+        fg="green",
+    )
 
 
 @cli.command("mcp")
@@ -404,6 +589,8 @@ def _parse_one_file(
     output_format: str,
     force_heavy: bool,
     force_fast: bool,
+    use_cache: bool,
+    extract_images_flag: bool,
 ) -> tuple[str, bool]:
     """Parse a single file and save output/log. Returns (file_name, success)."""
     try:
@@ -412,6 +599,10 @@ def _parse_one_file(
             output_format=output_format,
             force_heavy=force_heavy,
             force_fast=force_fast,
+            use_cache=use_cache,
+            extract_images_flag=extract_images_flag,
+            image_dir=str(output_path.parent / f"{output_path.name}_images"),
+            image_reference_dir=str(output_path.parent),
             verbose=False,
         )
 
@@ -447,8 +638,8 @@ def _parse_one_file(
     "--format",
     "-f",
     type=click.Choice(["markdown", "json"]),
-    default="markdown",
-    help="Output format (markdown or json)",
+    default=None,
+    help="Output format (markdown or json). Defaults to ~/.papyrus/config.toml or markdown.",
 )
 @click.option(
     "--workers",
@@ -456,6 +647,12 @@ def _parse_one_file(
     type=int,
     default=None,
     help="Number of parallel workers (default: CPU count or 4)",
+)
+@click.option(
+    "--executor",
+    type=click.Choice(["threads", "processes"]),
+    default=None,
+    help="Parallel executor for batch mode. Processes help CPU-heavy OCR workloads.",
 )
 @click.option(
     "--use-heavy",
@@ -473,14 +670,27 @@ def _parse_one_file(
     is_flag=True,
     help="Recursively process subdirectories",
 )
+@click.option(
+    "--no-cache",
+    is_flag=True,
+    help="Disable parse cache for batch items",
+)
+@click.option(
+    "--extract-images",
+    is_flag=True,
+    help="Extract embedded PDF/PPTX/DOCX images beside each parsed output",
+)
 def batch_cmd(
     input_dir: Path,
     output_dir: Optional[Path],
-    format: str,
+    format: Optional[str],
     workers: Optional[int],
+    executor: Optional[str],
     use_heavy: bool,
     use_fast: bool,
     recursive: bool,
+    no_cache: bool,
+    extract_images: bool,
 ):
     """Batch parse all documents in a directory.
 
@@ -494,9 +704,12 @@ def batch_cmd(
         papyrus batch ./lectures -o ./output --workers 4
         papyrus batch ./lectures --use-fast -r
     """
+    config = load_config()
+    output_format = format or config["format"]
+    executor_name = executor or config["batch_executor"]
     supported_exts = {
         ".pdf", ".pptx", ".docx", ".xlsx", ".html", ".htm",
-        ".md", ".markdown", ".txt",
+        ".md", ".markdown", ".txt", ".text",
     }
 
     # Collect files
@@ -522,17 +735,23 @@ def batch_cmd(
 
     # Determine workers
     if workers is None:
-        workers = min(4, os.cpu_count() or 4)
+        workers = config.get("workers") or min(4, os.cpu_count() or 4)
     workers = max(1, workers)
 
     total = len(files)
     success_count = 0
     fail_count = 0
 
-    secho(f"📦 Batch parsing {total} files with {workers} workers...", fg="cyan", bold=True, err=True)
+    secho(
+        f"📦 Batch parsing {total} files with {workers} {executor_name} workers...",
+        fg="cyan",
+        bold=True,
+        err=True,
+    )
     click.echo("", err=True)
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    executor_cls = ProcessPoolExecutor if executor_name == "processes" else ThreadPoolExecutor
+    with executor_cls(max_workers=workers) as pool:
         future_to_file = {}
         for file_path in files:
             # Preserve relative directory structure under output_dir
@@ -545,14 +764,16 @@ def batch_cmd(
             out_file.parent.mkdir(parents=True, exist_ok=True)
             log_file = out_file.with_suffix(".log")
 
-            future = executor.submit(
+            future = pool.submit(
                 _parse_one_file,
                 file_path,
                 out_file,
                 log_file,
-                format,
+                output_format,
                 use_heavy,
                 use_fast,
+                not no_cache,
+                extract_images,
             )
             future_to_file[future] = (file_path, out_file, log_file)
 
@@ -601,8 +822,8 @@ def run_cli():
     if len(sys.argv) > 1:
         first = sys.argv[1]
         # Known sub-commands + common flags that should not trigger default
-        known = {"parse", "batch", "setup", "mcp", "--help", "-h", "--version"}
-        if not first.startswith("-") and first not in known:
+        known = {"parse", "batch", "setup", "mcp", "cache", "--help", "-h", "--version"}
+        if (first == "-" or not first.startswith("-")) and first not in known:
             sys.argv.insert(1, "parse")
 
     cli()

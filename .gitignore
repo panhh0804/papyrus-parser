@@ -47,6 +47,8 @@ papyrus-output/
 parsed/
 output/
 outputs/
+*_images/
+*_assets/
 *.log
 *.tmp
 *.parsed.md

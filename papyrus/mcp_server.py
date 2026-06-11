@@ -104,6 +104,20 @@ class MCPServer:
                                 "description": "Force fast path without OCR (faster but may fail on scanned documents)",
                                 "default": False,
                             },
+                            "use_cache": {
+                                "type": "boolean",
+                                "description": "Use Papyrus content-addressed parse cache",
+                                "default": True,
+                            },
+                            "extract_images": {
+                                "type": "boolean",
+                                "description": "Extract embedded PDF/PPTX/DOCX images to disk and include asset metadata",
+                                "default": False,
+                            },
+                            "image_dir": {
+                                "type": "string",
+                                "description": "Directory for extracted images when extract_images is true",
+                            },
                         },
                         "required": ["file_path"],
                     },
@@ -132,6 +146,9 @@ class MCPServer:
         output_format = params.get("format", "markdown")
         use_heavy = params.get("use_heavy", False)
         use_fast = params.get("use_fast", False)
+        use_cache = params.get("use_cache", True)
+        extract_images = params.get("extract_images", False)
+        image_dir = params.get("image_dir")
 
         try:
             # Call the actual parsing function
@@ -140,6 +157,9 @@ class MCPServer:
                 output_format=output_format,
                 force_heavy=use_heavy,
                 force_fast=use_fast,
+                use_cache=use_cache,
+                extract_images_flag=extract_images,
+                image_dir=image_dir,
                 verbose=False,
             )
 
